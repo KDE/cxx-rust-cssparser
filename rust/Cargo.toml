@@ -1,0 +1,21 @@
+[package]
+name = "cxx-rust-cssparser"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+cxx = "1.0"
+cssparser = "0.34"
+selectors = "0.26.0"
+precomputed-hash = "0.1.1"
+
+[build-dependencies]
+cxx-build = "1.0"
+
+[lib]
+crate-type = ["staticlib"]
+path = "src/lib.rs"
+
+# [[bin]]
+# name = "cssparser-test"
+# path = "src/main.rs"
