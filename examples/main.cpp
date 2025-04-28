@@ -15,6 +15,7 @@ std::string kind_to_string(SelectorKind kind)
         case SelectorKind::Class: return "Class"s;
         case SelectorKind::Id: return "Id"s;
         case SelectorKind::Attribute: return "Attribute"s;
+        case SelectorKind::RelativeParent: return "RelativeParent"s;
         case SelectorKind::PseudoClass: return "PseudoClass"s;
         case SelectorKind::DescendantCombinator: return "DescendantCombinator";
         case SelectorKind::ChildCombinator: return "ChildCombinator";
@@ -33,6 +34,12 @@ std::string value_to_string(const Value &value)
             return arg;
         } else if constexpr (std::is_same_v<T, float>) {
             return std::to_string(arg);
+        } else if constexpr (std::is_same_v<T, int>) {
+            return std::to_string(arg);
+        } else if constexpr (std::is_same_v<T, Color>) {
+            return std::string(arg.to_string());
+        } else if constexpr (std::is_same_v<T, Dimension>) {
+            return std::string(arg.to_string());
         }
     }, value);
 }
@@ -45,39 +52,34 @@ int main(int argc, char **argv)
     }
 
     std::filesystem::path path(argv[1]);
-    std::ifstream file(path, std::ios::in);
-    if (!file.is_open()) {
-        std::cerr << "Could not read file!" << std::endl;
-        exit(2);
-    }
 
-    const auto size = std::filesystem::file_size(path);
+    StyleSheet sheet;
+    sheet.set_root_path(path.parent_path());
+    sheet.parse_file(path.filename());
 
-    std::string data(size, '\0');
-    file.read(data.data(), size);
-
-    CssParser parser;
-    auto result = parser.parse(data);
-
+    auto result = sheet.rules();
     std::cout << result.size() << " results:" << std::endl;
 
     for (auto entry : result) {
         // std::cout << entry.selectors;
-        for (auto selector : entry.selectors) {
-            std::cout << "Selector(" << std::endl;
-            for (auto part : selector.parts) {
-                std::cout << "  Part(" << kind_to_string(part.kind) << ", " << value_to_string(part.value) << ")" << std::endl;
-            }
-            std::cout << ")" << std::endl;
+        std::cout << "Selector(" << std::endl;
+        for (auto part : entry.selector.parts) {
+            std::cout << "  Part(" << kind_to_string(part.kind) << ", " << value_to_string(part.value) << ")" <<    std::endl;
         }
+        std::cout << ")" << std::endl;
 
         for (auto property : entry.properties) {
             std::cout << "Property(" << std::endl;
             std::cout << "  name: " << property.name << std::endl;
-            std::cout << "  value: " << value_to_string(property.value) << std::endl;
+            if (property.values.size() == 1) {
+                std::cout << "  value: " << value_to_string(property.values.at(0)) << std::endl;
+            } else {
+                std::cout << "  values:" << std::endl;
+                for (auto value : property.values) {
+                    std::cout << "    " << value_to_string(value) << std::endl;
+                }
+            }
             std::cout << ")" << std::endl;
         }
-
-        // std::cout << entry.properties;
     }
 }
