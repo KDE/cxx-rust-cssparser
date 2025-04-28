@@ -1,6 +1,9 @@
-// use std::error::Error;
+// SPDX-License-Identifier: LGPL-2.1-only OR LGPL-3.0-only OR LicenseRef-KDE-Accepted-LGPL
+// SPDX-FileCopyrightText: 2024 Arjen Hiemstra <ahiemstra@heimr.nl>
 
-use crate::ffi::{SelectorKind, ValueType};
+use cssparser::color::{parse_named_color, parse_hash_color, clamp_unit_f32};
+
+use crate::ffi::{SelectorKind, ValueType, Color};
 
 #[derive(Debug)]
 pub struct Error(&'static str);
@@ -14,59 +17,7 @@ impl std::fmt::Display for Error {
     }
 }
 
-#[derive(Debug, Default, Clone)]
-pub enum ValueData {
-    #[default] Empty,
-    String(String),
-    Number(f32),
-}
 
-#[derive(Debug, Default, Clone)]
-pub struct Value {
-    data: ValueData
-}
-
-impl Value {
-    pub fn empty() -> Value {
-        Value{data: ValueData::Empty}
-    }
-
-    pub fn value_type(&self) -> ValueType {
-        match self.data {
-            ValueData::Empty => ValueType::Empty,
-            ValueData::String(_) => ValueType::String,
-            ValueData::Number(_) => ValueType::Number,
-        }
-    }
-
-    pub fn to_string(&self) -> Result<&str, Error> {
-        if let ValueData::String(contents) = &self.data {
-            return Ok(contents);
-        } else {
-            return Err(Error("Not a string"));
-        }
-    }
-
-    pub fn to_number(&self) -> Result<f32, Error> {
-        if let ValueData::Number(contents) = &self.data {
-            return Ok(*contents);
-        } else {
-            return Err(Error("Not a number"));
-        }
-    }
-}
-
-impl From<String> for Value {
-    fn from(value: String) -> Self {
-        Value{data: ValueData::String(value)}
-    }
-}
-
-impl From<f32> for Value {
-    fn from(value: f32) -> Self {
-        Value{data: ValueData::Number(value)}
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct SelectorPart {
@@ -106,7 +57,7 @@ impl Selector {
 #[derive(Debug, Default, Clone)]
 pub struct Property {
     pub name: String,
-    pub value: Value,
+    pub values: Vec<Value>,
 }
 
 impl Property {
@@ -114,8 +65,8 @@ impl Property {
         &self.name
     }
 
-    pub fn value(&self) -> &Value {
-        &self.value
+    pub fn values(&self) -> Vec<Value> {
+        self.values.clone()
     }
 }
 

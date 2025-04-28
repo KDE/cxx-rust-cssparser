@@ -1,0 +1,25 @@
+@property width {
+    syntax: "<length>";
+    inherits: false;
+}
+
+@property height {
+    syntax: "<length>";
+    inherits: false;
+}
+
+@property color {
+    syntax: "<color>";
+    inherits: true;
+    initial-value: #ffffff;
+}
+
+@property padding {
+    syntax: "<length>+";
+    inherits: false;
+}
+
+@property padding-top {
+    syntax: "<length>";
+    inherits: false;
+}

@@ -8,14 +8,11 @@ cxx = "1.0"
 cssparser = "0.34"
 selectors = "0.26.0"
 precomputed-hash = "0.1.1"
+nom = "8.0.0"
 
 [build-dependencies]
 cxx-build = "1.0"
 
 [lib]
-crate-type = ["staticlib"]
+crate-type = ["staticlib", "rlib"]
 path = "src/lib.rs"
-
-# [[bin]]
-# name = "cssparser-test"
-# path = "src/main.rs"
