@@ -1,10 +1,12 @@
+// SPDX-License-Identifier: LGPL-2.1-only OR LGPL-3.0-only OR LicenseRef-KDE-Accepted-LGPL
+// SPDX-FileCopyrightText: 2024 Arjen Hiemstra <ahiemstra@heimr.nl>
+
 #include "CssParser.h"
 
 #include <filesystem>
 #include <iostream>
 #include <fstream>
-
-#include "cxx-rust-cssparser-impl.h"
+#include <format>
 
 using namespace std::string_literals;
 
@@ -14,66 +16,89 @@ namespace cssparser
 Value convert_value(const rust::Value &input)
 {
     switch (input.value_type()) {
+        case rust::ValueType::Empty:
+            return Value(std::nullopt);
+        case rust::ValueType::Length:
+            return Value(input.to_length());
         case rust::ValueType::String:
             return Value(std::string(input.to_string()));
         case rust::ValueType::Number:
             return Value(input.to_number());
+        case rust::ValueType::Color: {
+            return Value(input.to_color());
         default:
             break;
+        }
     }
 
     return Value(std::nullopt);
 }
 
-SelectorKind convert_selector_kind(rust::SelectorKind input)
+struct StyleSheet::Private
 {
-    switch (input) {
-        case rust::SelectorKind::Unknown: return SelectorKind::Unknown;
-        case rust::SelectorKind::Type: return SelectorKind::Type;
-        case rust::SelectorKind::Class: return SelectorKind::Class;
-        case rust::SelectorKind::Id: return SelectorKind::Id;
-        case rust::SelectorKind::PseudoClass: return SelectorKind::PseudoClass;
-        case rust::SelectorKind::Attribute: return SelectorKind::Attribute;
-        case rust::SelectorKind::DescendantCombinator: return SelectorKind::DescendantCombinator;
-        case rust::SelectorKind::ChildCombinator: return SelectorKind::ChildCombinator;
-    }
+    void update_rules();
 
-    return SelectorKind::Unknown;
+    rust::StyleSheet *stylesheet;
+    std::vector<CssRule> rules;
+};
+
+StyleSheet::StyleSheet()
+    : d(std::make_unique<Private>())
+{
+    auto sheet = rust::create_stylesheet();
+    d->stylesheet = sheet.into_raw();
 }
 
-CssParser::CssParser()
+StyleSheet::~StyleSheet() = default;
+
+std::vector<CssRule> StyleSheet::rules() const
 {
+    return d->rules;
 }
 
-std::vector<CssRule> CssParser::parse(const std::string &source)
+void StyleSheet::set_root_path(const std::filesystem::path &path)
 {
-    const auto result = rust::parse(source);
+    d->stylesheet->set_root_path(path.string());
+}
 
-    std::vector<CssRule> output;
-    for (const auto &entry : result) {
+void StyleSheet::parse_file(const std::string &file)
+{
+    d->stylesheet->parse_file(file);
+    d->update_rules();
+}
+
+void StyleSheet::parse_string(const std::string &source)
+{
+    d->stylesheet->parse_string(source);
+    d->update_rules();
+}
+
+void StyleSheet::Private::update_rules()
+{
+    rules.clear();
+
+    for (const auto &entry : stylesheet->rules()) {
         CssRule rule;
 
-        const auto properties = entry.properties();
+        const auto &properties = entry.properties();
         for (const auto &property : properties) {
-            rule.properties.emplace_back(std::string(property.name()), convert_value(property.value()));
-        }
-
-        const auto selectors = entry.selectors();
-        for (const auto &selector : selectors) {
-            Selector s;
-
-            const auto parts = selector.parts();
-            for (const auto &part : parts) {
-                s.parts.emplace_back(convert_selector_kind(part.kind()), convert_value(part.value()));
+            std::vector<Value> vals;
+            const auto values = property.values();
+            for (const auto &value : values) {
+                vals.push_back(convert_value(value));
             }
-
-            rule.selectors.push_back(s);
+            rule.properties.emplace_back(std::string(property.name()), vals);
         }
 
-        output.push_back(rule);
-    }
+        Selector s;
+        const auto &parts = entry.selector().parts();
+        for (const auto &part : parts) {
+            s.parts.emplace_back(part.kind(), convert_value(part.value()));
+        }
+        rule.selector = s;
 
-    return output;
+        rules.push_back(rule);
+    }
 }
 
 }
