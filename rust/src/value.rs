@@ -96,53 +96,7 @@ impl Value {
     pub fn empty() -> Value {
         Value{data: ValueData::Empty}
     }
-
-    // pub fn value_type(&self) -> ValueType {
-    //     match self.data {
-    //         ValueData::Empty => ValueType::Empty,
-    //         ValueData::Length(_) => ValueType::Length,
-    //         ValueData::Number(_) => ValueType::Number,
-    //         ValueData::Percentage(_) => ValueType::Percentage,
-    //         ValueData::String(_) => ValueType::String,
-    //         ValueData::Color(_) => ValueType::Color,
-    //         ValueData::Image(_) => ValueType::Image,
-    //         ValueData::Url(_) => ValueType::Url,
-    //         ValueData::Integer(_) => ValueType::Integer,
-    //         ValueData::Angle(_) => ValueType::Angle,
-    //         ValueData::Time(_) => ValueType::Time,
-    //     }
-    // }
-    //
-    // pub fn to_string(&self) -> Result<&str, Error> {
-    //     if let ValueData::String(contents) = &self.data {
-    //         Ok(contents)
-    //     } else {
-    //         Err(Error("Not a string"))
-    //     }
-    // }
-    //
-    // pub fn to_number(&self) -> Result<f32, Error> {
-    //     if let ValueData::Number(contents) = self.data {
-    //         Ok(contents)
-    //     } else {
-    //         Err(Error("Not a number"))
-    //     }
-    // }
-    //
-    // pub fn to_color(&self) -> Result<Color, Error> {
-    //     if let ValueData::Color(contents) = self.data {
-    //         Ok(contents)
-    //     } else {
-    //         Err(Error("Not a color"))
-    //     }
-    // }
 }
-
-// impl From<String> for Value {
-//     fn from(value: String) -> Self {
-//
-//     }
-// }
 
 impl From<&str> for Value {
     fn from(value: &str) -> Self {

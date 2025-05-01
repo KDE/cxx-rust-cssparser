@@ -73,13 +73,7 @@ public:
 
     void parse_file(const std::string &file_name);
     void parse_string(const std::string &data);
-    // std::vector<CssRule> parse(const std::string &source);
 
-    // static void define_property(const std::string &name, const std::string &syntax);
-    // static void define_property(const std::string &name, const std::vector<std::string> &syntax);
-    // static void define_property(const std::string &name, const std::string &syntax, const Value &initial);
-
-    // rust::Vec<CssRule> parse(rust::Str source);
 private:
     struct Private;
     const std::unique_ptr<Private> d;

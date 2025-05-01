@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-only OR LGPL-3.0-only OR LicenseRef-KDE-Accepted-LGPL
 // SPDX-FileCopyrightText: 2025 Arjen Hiemstra <ahiemstra@heimr.nl>
 
-// pub mod identifier;
-// pub mod types;
-
 mod details;
 
 pub mod value;
@@ -11,9 +8,6 @@ pub mod selector;
 pub mod property;
 pub mod stylerule;
 pub mod stylesheet;
-
-// use parser::Parser;
-// use types::*;
 
 use selector::{Selector, SelectorPart};
 use property::Property;

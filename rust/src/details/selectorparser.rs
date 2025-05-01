@@ -81,10 +81,6 @@ pub struct SelectorParser;
 
 impl SelectorParser {
     pub fn parse<'i, 't>(&self, parser: &mut cssparser::Parser<'i, 't>, relative: ParseRelative) -> Result<Vec<Selector>, cssparser::ParseError<'i, ParseError>> {
-        // let relative_selectors = match parent_selector {
-        //     None => selectors::parser::ParseRelative::No,
-        //     Some(_) => selectors::parser::ParseRelative::ForNesting,
-        // };
         let relative_selectors = match relative {
             ParseRelative::No => selectors::parser::ParseRelative::No,
             ParseRelative::Nested => selectors::parser::ParseRelative::ForNesting,
