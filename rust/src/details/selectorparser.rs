@@ -92,7 +92,6 @@ impl SelectorParser {
         let result = SelectorList::parse(self, parser, relative_selectors);
 
         if let Err(error) = result {
-            println!("Error parsing selector: {:#?}", error);
             return Err(cssparser::ParseError{kind: cssparser::ParseErrorKind::Custom(ParseError::from(error)), location: parser.current_source_location()})
         }
 
