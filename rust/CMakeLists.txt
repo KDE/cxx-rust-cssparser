@@ -14,14 +14,15 @@ add_library(cxx-rust-cssparser-impl STATIC ${RUST_CXX})
 add_custom_command(
     OUTPUT ${RUST_LIB} ${RUST_CXX}
     COMMAND CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR} RUSTFLAGS="${RUST_FLAGS}" ${CARGO_CMD}
-    COMMAND cp ${CMAKE_CURRENT_BINARY_DIR}/cxxbridge/cxx-rust-cssparser/src/lib.rs.cc ${RUST_CXX}
-    COMMAND cp ${CMAKE_CURRENT_BINARY_DIR}/cxxbridge/cxx-rust-cssparser/src/lib.rs.h ${CMAKE_CURRENT_BINARY_DIR}/cxx-rust-cssparser-impl.h
+    COMMAND cp ${CMAKE_CURRENT_BINARY_DIR}/cxxbridge/cxx-rust-cssparser/src/ffi.rs.cc ${RUST_CXX}
+    COMMAND cp ${CMAKE_CURRENT_BINARY_DIR}/cxxbridge/cxx-rust-cssparser/src/ffi.rs.h ${CMAKE_CURRENT_BINARY_DIR}/cxx-rust-cssparser-impl.h
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 
     DEPENDS
     build.rs
     Cargo.toml
 
+    src/ffi.rs
     src/lib.rs
     src/property.rs
     src/selector.rs
