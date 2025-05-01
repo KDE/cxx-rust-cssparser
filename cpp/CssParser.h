@@ -52,6 +52,12 @@ struct CSSPARSER_EXPORT Property {
     {
     }
 
+    template <typename T>
+    inline T value(std::size_t index = 0) const
+    {
+        return std::get<T>(values.at(index));
+    }
+
     std::string name;
     std::vector<Value> values;
 };
@@ -61,6 +67,13 @@ struct CSSPARSER_EXPORT CssRule {
     std::vector<Property> properties;
 };
 
+struct CSSPARSER_EXPORT Error {
+    std::string file;
+    uint32_t line = 0;
+    uint32_t column = 0;
+    std::string message;
+};
+
 class CSSPARSER_EXPORT StyleSheet
 {
 public:
@@ -68,6 +81,7 @@ public:
     ~StyleSheet();
 
     std::vector<CssRule> rules() const;
+    std::vector<Error> errors() const;
 
     void set_root_path(const std::filesystem::path &path);
 

@@ -39,10 +39,11 @@ Value convert_value(const rust::Value &input)
 
 struct StyleSheet::Private
 {
-    void update_rules();
+    void update();
 
     rust::StyleSheet *stylesheet;
     std::vector<CssRule> rules;
+    std::vector<Error> errors;
 };
 
 StyleSheet::StyleSheet()
@@ -59,6 +60,11 @@ std::vector<CssRule> StyleSheet::rules() const
     return d->rules;
 }
 
+std::vector<Error> StyleSheet::errors() const
+{
+    return d->errors;
+}
+
 void StyleSheet::set_root_path(const std::filesystem::path &path)
 {
     d->stylesheet->set_root_path(path.string());
@@ -67,16 +73,16 @@ void StyleSheet::set_root_path(const std::filesystem::path &path)
 void StyleSheet::parse_file(const std::string &file)
 {
     d->stylesheet->parse_file(file);
-    d->update_rules();
+    d->update();
 }
 
 void StyleSheet::parse_string(const std::string &source)
 {
     d->stylesheet->parse_string(source);
-    d->update_rules();
+    d->update();
 }
 
-void StyleSheet::Private::update_rules()
+void StyleSheet::Private::update()
 {
     rules.clear();
 
@@ -101,6 +107,15 @@ void StyleSheet::Private::update_rules()
         rule.selector = s;
 
         rules.push_back(rule);
+    }
+
+    for (const auto &entry : stylesheet->errors()) {
+        errors.push_back(Error{
+            .file = std::string(entry.file),
+            .line = entry.line,
+            .column = entry.column,
+            .message = std::string(entry.message),
+        });
     }
 }
 

@@ -65,6 +65,13 @@ mod ffi {
         unit: Unit,
     }
 
+    pub struct StyleSheetError {
+        file: String,
+        line: u32,
+        column: u32,
+        message: String,
+    }
+
     extern "Rust" {
         fn to_string(self: &Color) -> String;
         fn to_string(self: &Dimension) -> String;
@@ -97,6 +104,7 @@ mod ffi {
 
         type StyleSheet;
         fn rules(self: &StyleSheet) -> Vec<StyleRule>;
+        fn errors(self: &StyleSheet) -> Vec<StyleSheetError>;
         fn set_root_path(self: &mut StyleSheet, root_path: &str);
         fn parse_file(self: &mut StyleSheet, file_name: &str) -> Result<()>;
         fn parse_string(self: &mut StyleSheet, data: &str) -> Result<()>;
@@ -295,6 +303,19 @@ impl StyleRule {
 impl StyleSheet {
     fn rules(&self) -> Vec<StyleRule> {
         self.rules.clone()
+    }
+
+    fn errors(&self) -> Vec<ffi::StyleSheetError> {
+        let mut result = Vec::new();
+        for error in &self.errors {
+            result.push(ffi::StyleSheetError{
+                file: String::from("Unknown"),
+                line: 0,
+                column: 0,
+                message: format!("{}", error),
+            })
+        }
+        result
     }
 
     fn set_root_path(&mut self, path: &str) {

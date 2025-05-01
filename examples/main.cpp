@@ -57,6 +57,16 @@ int main(int argc, char **argv)
     sheet.set_root_path(path.parent_path());
     sheet.parse_file(path.filename());
 
+    auto errors = sheet.errors();
+    if (!errors.empty()) {
+        std::cout << errors.size() << " errors:" << std::endl;
+
+        for (auto error : errors) {
+            std::cout << "In file " << error.file << " on line " << error.line << " column " << error.column << ":" << std::endl;
+            std::cout << error.message << std::endl;
+        }
+    }
+
     auto result = sheet.rules();
     std::cout << result.size() << " results:" << std::endl;
 
