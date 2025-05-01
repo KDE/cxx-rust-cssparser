@@ -120,6 +120,12 @@ impl From<f32> for Value {
     }
 }
 
+impl From<i32> for Value {
+    fn from(value: i32) -> Self {
+        Value{data: ValueData::Integer(value)}
+    }
+}
+
 impl From<&Identifier> for Value {
     fn from(value: &Identifier) -> Self {
         let id: String = value.into();

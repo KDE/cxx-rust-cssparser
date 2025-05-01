@@ -26,6 +26,9 @@ Value convert_value(const rust::Value &input)
             return Value(input.to_number());
         case rust::ValueType::Color: {
             return Value(input.to_color());
+        case rust::ValueType::Integer: {
+            return Value(input.to_integer());
+        }
         default:
             break;
         }

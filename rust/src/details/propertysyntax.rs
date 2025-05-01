@@ -336,6 +336,10 @@ fn parse_value_component<'i, 't>(component: &SyntaxComponent, parser: &mut csspa
                         }
                     }
                 },
+                DataType::Integer => {
+                    let integer = parser.expect_integer()?;
+                    return Ok(vec![Value::from(integer)]);
+                }
                 _ => {
                     return parse_error!(parser, InvalidPropertyValue, format!("Data type {:?} is not supported", data_type));
                 }
