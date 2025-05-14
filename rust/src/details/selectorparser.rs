@@ -100,9 +100,6 @@ impl SelectorParser {
                     selectors::parser::Component::ID(name) => selector.push_part(SelectorKind::Id, Value::from(name)),
                     selectors::parser::Component::Class(name) => selector.push_part(SelectorKind::Class, Value::from(name)),
                     selectors::parser::Component::NonTSPseudoClass(pseudo_class) => selector.push_part(SelectorKind::PseudoClass, Value::from(pseudo_class.0.as_str())),
-                    selectors::parser::Component::RelativeSelectorAnchor => println!("relative"), //selector.push_part(SelectorKind::)
-                    selectors::parser::Component::Scope => println!("scope"),
-                    selectors::parser::Component::ImplicitScope => println!("ImplicitScope"),
                     selectors::parser::Component::ParentSelector => selector.push_part(SelectorKind::RelativeParent, Value::empty()),
 
                     selectors::parser::Component::Combinator(combinator) => {
