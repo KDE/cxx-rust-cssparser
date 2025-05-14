@@ -18,12 +18,12 @@ Value convert_value(const rust::Value &input)
     switch (input.value_type()) {
         case rust::ValueType::Empty:
             return Value(std::nullopt);
-        case rust::ValueType::Length:
-            return Value(input.to_length());
+        case rust::ValueType::Dimension: {
+            auto dim = input.to_dimension();
+            return Value(Dimension{.value = dim.value, .unit = dim.unit});
+        }
         case rust::ValueType::String:
             return Value(std::string(input.to_string()));
-        case rust::ValueType::Number:
-            return Value(input.to_number());
         case rust::ValueType::Color: {
             return Value(input.to_color());
         case rust::ValueType::Integer: {
@@ -76,9 +76,9 @@ void StyleSheet::parse_file(const std::string &file)
     d->update();
 }
 
-void StyleSheet::parse_string(const std::string &source)
+void StyleSheet::parse_string(const std::string &source, const std::string &origin)
 {
-    d->stylesheet->parse_string(source);
+    d->stylesheet->parse_string(source, origin);
     d->update();
 }
 

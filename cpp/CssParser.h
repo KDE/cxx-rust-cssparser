@@ -4,6 +4,7 @@
 #pragma once
 
 #include <filesystem>
+#include <format>
 #include <memory>
 #include <optional>
 #include <string>
@@ -19,9 +20,34 @@ namespace cssparser
 
 using Color = rust::Color;
 using Unit = rust::Unit;
-using Dimension = rust::Dimension;
 
-using Value = std::variant<std::nullopt_t, std::string, float, int, Color, Dimension>;
+struct Dimension {
+    float value;
+    Unit unit;
+
+    inline operator float() const {
+        return value;
+    }
+
+    inline std::string to_string() const {
+        switch (unit) {
+        case Unit::Px:
+            return std::format("{} px", value);
+        case Unit::Em:
+            return std::format("{} em", value);
+        case Unit::Rem:
+            return std::format("{} rem", value);
+        case Unit::Pt:
+            return std::format("{} pt", value);
+        case Unit::Percent:
+            return std::format("{} %", value);
+        default:
+            return std::format("{} (Unknown unit)", value);
+        }
+    }
+};
+
+using Value = std::variant<std::nullopt_t, std::string, int, Color, Dimension>;
 
 using SelectorKind = rust::SelectorKind;
 
@@ -58,6 +84,11 @@ struct CSSPARSER_EXPORT Property {
         return std::get<T>(values.at(index));
     }
 
+    inline Value value(std::size_t index = 0) const
+    {
+        return values.at(index);
+    }
+
     std::string name;
     std::vector<Value> values;
 };
@@ -86,7 +117,7 @@ public:
     void set_root_path(const std::filesystem::path &path);
 
     void parse_file(const std::string &file_name);
-    void parse_string(const std::string &data);
+    void parse_string(const std::string &data, const std::string &origin);
 
 private:
     struct Private;
