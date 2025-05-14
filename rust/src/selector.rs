@@ -12,6 +12,7 @@ pub enum SelectorKind {
     PseudoClass,
     Attribute,
     RelativeParent,
+    DocumentRoot,
     DescendantCombinator,
     ChildCombinator,
 }
