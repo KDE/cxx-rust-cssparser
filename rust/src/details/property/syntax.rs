@@ -14,6 +14,7 @@ use nom::{
 };
 
 use crate::details::{ParseError, ParseErrorKind, SourceLocation};
+use super::value::ParseValuesResult;
 
 use crate::value::{Value, ValueData};
 
@@ -353,3 +354,239 @@ pub fn parse_syntax(input: &str, location: SourceLocation) -> Result<ParsedPrope
     }
 }
 
+struct SyntaxValidateError(String);
+
+fn validate_datatype<'a>(datatype: &DataType, values: &'a [Value]) -> Result<&'a [Value], SyntaxValidateError> {
+    if let Some((value, remain)) = values.split_first() {
+        match datatype {
+            DataType::Length => {
+                if let ValueData::Dimension(dimension) = &value.data {
+                    if dimension.is_length() {
+                        return Ok(remain)
+                    }
+                }
+                Err(SyntaxValidateError(format!("Expected Length, got {:?}", value)))
+            },
+            DataType::Number => {
+                if let ValueData::Dimension(dimension) = &value.data {
+                    if dimension.is_number() {
+                        return Ok(remain)
+                    }
+                }
+                Err(SyntaxValidateError(format!("Expected Number, got {:?}", value)))
+            },
+            DataType::Percentage => {
+                if let ValueData::Dimension(dimension) = &value.data {
+                    if dimension.is_percent() {
+                        return Ok(remain)
+                    }
+                }
+                Err(SyntaxValidateError(format!("Expected Percentage, got {:?}", value)))
+            },
+            DataType::LengthPercentage => {
+                if let ValueData::Dimension(dimension) = &value.data {
+                    if dimension.is_length() || dimension.is_percent() {
+                        return Ok(remain)
+                    }
+                }
+                Err(SyntaxValidateError(format!("Expected Length or Percentage, got {:?}", value)))
+            },
+            DataType::String => {
+                if let ValueData::String(_) = value.data {
+                    Ok(remain)
+                } else {
+                    Err(SyntaxValidateError(format!("Expected String, got {:?}", value)))
+                }
+            },
+            DataType::Color => {
+                if let ValueData::Color(_) = value.data {
+                    Ok(remain)
+                } else {
+                    Err(SyntaxValidateError(format!("Expected Color, got {:?}", value)))
+                }
+            },
+            DataType::Angle => {
+                if let ValueData::Dimension(dimension) = &value.data {
+                    if dimension.is_angle() {
+                        return Ok(remain);
+                    }
+                }
+                Err(SyntaxValidateError(format!("Expected Angle, got {:?}", value)))
+            },
+            DataType::Integer => {
+                if let ValueData::Integer(_) = &value.data {
+                    return Ok(remain);
+                }
+                Err(SyntaxValidateError(format!("Expected Integer, got {:?}", value)))
+            },
+            _ => {
+                Err(SyntaxValidateError(format!("Unhandled data type {:?}", datatype)))
+            }
+        }
+    } else {
+        Err(SyntaxValidateError(String::from("Expected a datatype")))
+    }
+}
+
+fn validate_keyword<'a>(keyword: &String, values: &'a [Value]) -> Result<&'a [Value], SyntaxValidateError> {
+    if let Some((value, remain)) = values.split_first() {
+        if let ValueData::String(data) = &value.data {
+            if data == keyword {
+                Ok(remain)
+            } else {
+                Err(SyntaxValidateError(format!("Unexpected keyword {}", data)))
+            }
+        } else {
+            Err(SyntaxValidateError(format!("{:?} is not a keyword", value)))
+        }
+    } else {
+        Err(SyntaxValidateError(String::from("Expected a keyword")))
+    }
+}
+
+fn validate_list<'a>(datatype: &DataType, values: &'a [Value], minimum: usize, maximum: usize) -> Result<&'a [Value], SyntaxValidateError> {
+    let mut count = 0;
+    let mut remain = values;
+    while !remain.is_empty() {
+        let result = validate_datatype(datatype, remain);
+        if let Ok(validate_remain) = result {
+            count += 1;
+            remain = validate_remain;
+
+            if count == maximum {
+                break
+            }
+        } else {
+            return result;
+        }
+    }
+
+    if count < minimum {
+        Err(SyntaxValidateError(format!("Expected at least {} values of type {:?}", minimum, datatype)))
+    } else if count > maximum {
+        Err(SyntaxValidateError(format!("Expected at most {} values of type {:?}", maximum, datatype)))
+    } else {
+        Ok(remain)
+    }
+}
+
+#[derive(Debug, PartialEq)]
+enum ListType {
+    NotAList,
+    SpaceSeparated,
+    CommaSeparated,
+}
+
+fn validate_component<'a>(component: &SyntaxComponent, values: &'a [Value], list_type: &ListType) -> Result<&'a [Value], SyntaxValidateError> {
+    match component {
+        SyntaxComponent::DataType(datatype) => validate_datatype(datatype, values),
+        SyntaxComponent::Keyword(keyword) => validate_keyword(keyword, values),
+        SyntaxComponent::SpaceSeparatedList(datatype) => {
+            if list_type == &ListType::CommaSeparated {
+                return Err(SyntaxValidateError(format!("Expected space separated list, got comma separated")))
+            }
+
+            validate_list(datatype, values, 0, usize::max_value())
+        },
+        SyntaxComponent::CommaSeparatedList(datatype) => {
+            if list_type == &ListType::SpaceSeparated {
+                return Err(SyntaxValidateError(format!("Expected comma separated list, got space separated")))
+            }
+
+            validate_list(datatype, values, 0, usize::max_value())
+        }
+        SyntaxComponent::Repeat { data_type, minimum, maximum } => {
+            if list_type == &ListType::CommaSeparated {
+                return Err(SyntaxValidateError(format!("Expected space separated list, got comma separated")))
+            }
+            validate_list(data_type, values, *minimum, *maximum)
+        }
+    }
+}
+
+fn validate_group<'a>(group: &SyntaxGroup, values: &'a [Value], list_type: &ListType) -> Result<&'a [Value], SyntaxValidateError> {
+    match group {
+        SyntaxGroup::Component(component) => validate_component(component, values, list_type),
+        SyntaxGroup::Expression(expression) => validate_expression(expression, values, list_type),
+    }
+}
+
+fn validate_alternatives<'a>(alternatives: &SyntaxAlternatives, values: &'a [Value], list_type: &ListType) -> Result<&'a [Value], SyntaxValidateError> {
+    match alternatives {
+        SyntaxAlternatives::Component(component) => validate_component(component, values, list_type),
+        SyntaxAlternatives::Group(group) => validate_group(group, values, list_type),
+        SyntaxAlternatives::Alternatives(alternatives) => {
+            for group in alternatives {
+                if let Ok(remain) = validate_group(group, values, list_type) {
+                    return Ok(remain);
+                }
+            }
+            Err(SyntaxValidateError(format!("None of the alternatives matched")))
+        }
+    }
+}
+
+fn validate_expression<'a>(expression: &[SyntaxAlternatives], values: &'a [Value], list_type: &ListType) -> Result<&'a [Value], SyntaxValidateError> {
+    let mut remaining_values = values;
+    let mut remaining_expression = expression;
+
+    while !remaining_values.is_empty() && !remaining_expression.is_empty() {
+        let alternative: &SyntaxAlternatives;
+
+        if let Some((alt, remain)) = remaining_expression.split_first() {
+            alternative = alt;
+            remaining_expression = remain;
+        } else {
+            break;
+        }
+
+        let result = validate_alternatives(alternative, remaining_values, list_type);
+        if let Ok(remain) = result {
+            remaining_values = remain;
+        } else {
+            return result;
+        }
+    }
+
+    if remaining_expression.is_empty() {
+        Ok(remaining_values)
+    } else {
+        Err(SyntaxValidateError(format!("Expected additional values")))
+    }
+}
+
+pub(super) fn validate_syntax(syntax: &ParsedPropertySyntax, values_result: &ParseValuesResult, location: SourceLocation) -> Result<(), ParseError> {
+    let expression = match syntax {
+        ParsedPropertySyntax::Empty | ParsedPropertySyntax::Universal => return Ok(()),
+        ParsedPropertySyntax::Expression(expression) => expression,
+    };
+
+    let values: &[Value];
+    let list_type: ListType;
+    match values_result {
+        ParseValuesResult::Single(v) => {
+            values = v;
+            list_type = ListType::NotAList;
+        },
+        ParseValuesResult::SpaceSeparated(v) => {
+            values = v;
+            list_type = ListType::SpaceSeparated;
+        },
+        ParseValuesResult::CommaSeparated(v) => {
+            values = v;
+            list_type = ListType::CommaSeparated;
+        }
+    }
+
+    let result = validate_expression(expression, values, &list_type);
+    if let Ok(remain) = result {
+        if remain.is_empty() {
+            Ok(())
+        } else {
+            Err(ParseError{ kind: ParseErrorKind::PropertyValueDoesNotMatchSyntax, message: format!("Received too many values, remaining: {:?}", remain), location})
+        }
+    } else {
+        let error = result.unwrap_err();
+        Err(ParseError { kind: ParseErrorKind::PropertyValueDoesNotMatchSyntax, message: error.0, location })
+    }
+}
