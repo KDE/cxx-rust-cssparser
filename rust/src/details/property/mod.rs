@@ -2,4 +2,6 @@
 // SPDX-FileCopyrightText: 2025 Arjen Hiemstra <ahiemstra@heimr.nl>
 
 pub mod definitionparser;
+pub mod function;
 pub mod syntax;
+pub mod value;
