@@ -88,7 +88,7 @@ impl SelectorParser {
         let result = SelectorList::parse(self, parser, relative_selectors);
 
         if let Err(error) = result {
-            return Err(cssparser::ParseError{kind: cssparser::ParseErrorKind::Custom(ParseError::from(error)), location: parser.current_source_location()})
+            return Err(parser.new_custom_error(ParseError::from_cssparser_error(error, parser.current_source_url().unwrap_or("").to_string())))
         }
 
         let mut selectors = Vec::new();

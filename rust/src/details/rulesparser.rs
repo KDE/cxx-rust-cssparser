@@ -7,9 +7,8 @@ use cssparser::{CowRcStr, RuleBodyParser};
 
 use crate::property::{Property, PropertyDefinition, property_definition};
 use crate::selector::Selector;
-use crate::parse_error;
 
-use super::ParseError;
+use super::{parse_error, ParseError, ParseErrorKind};
 use super::selectorparser::{SelectorParser, ParseRelative};
 use super::propertysyntax::parse_values;
 use super::propertyparser::parse_property_definition;
@@ -51,7 +50,7 @@ impl<'i, const TOP_LEVEL: bool> cssparser::QualifiedRuleParser<'i> for RulesPars
         if let Ok(selectors) = result {
             Ok(selectors)
         } else {
-            parse_error!(parser, InvalidSelectors, result.err().unwrap().to_string())
+            parse_error(parser, ParseErrorKind::InvalidSelectors, result.err().unwrap().to_string())
         }
     }
 
@@ -103,10 +102,8 @@ impl<'i, const TOP_LEVEL: bool> cssparser::AtRuleParser<'i> for RulesParser<TOP_
                 let url = input.expect_url_or_string()?.to_string();
                 return Ok(AtRulePrelude::Import(url));
             }
-            _ => (),
+            _ => parse_error(input, ParseErrorKind::UnsupportedAtRule, format!("Unsupported @-rule {}", name)),
         }
-
-        parse_error!(input, UnsupportedAtRule, format!("Unsupported @-rule {}", name))
     }
 
     fn parse_block<'t>(
@@ -120,11 +117,11 @@ impl<'i, const TOP_LEVEL: bool> cssparser::AtRuleParser<'i> for RulesParser<TOP_
                 let result = parse_property_definition(input, name.to_string());
                 match result {
                     Ok(definition) => return Ok(ParseResult::PropertyDefinition(definition)),
-                    Err(error) => return parse_error!(input, InvalidPropertyDefinition, error.to_string())
+                    Err(error) => return parse_error(input, ParseErrorKind::InvalidPropertyDefinition, error.to_string())
                 }
             },
             _ => {
-                return parse_error!(input, UnsupportedAtRule, format!("Got @-rule: {:?}", prelude));
+                return parse_error(input, ParseErrorKind::UnsupportedAtRule, format!("Got @-rule: {:?}", prelude));
             }
         }
     }

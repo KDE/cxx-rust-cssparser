@@ -6,7 +6,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 
-use crate::details::ParseError;
+use crate::details::{ParseError, ParseErrorKind, SourceLocation};
 use crate::details::rulesparser::*;
 
 use crate::property::add_property_definition;
@@ -31,22 +31,23 @@ impl StyleSheet {
 
     pub fn parse_file(&mut self, file_name: &str) -> Result<(), ParseError> {
         let path = self.root_path.join(file_name);
-        let file = File::open(path);
+        let file = File::open(&path);
         if let Err(error) = file {
-            return Err(ParseError::FileError(error));
+            return Err(ParseError{ kind: ParseErrorKind::FileError, message: format!("{}", error), location: SourceLocation{ file: path.to_string_lossy().to_string(), line: 0, column: 0 } });
         }
 
         let mut data = String::new();
         let result = file.unwrap().read_to_string(&mut data);
         if let Err(error) = result {
-            return Err(ParseError::FileError(error))
+            return Err(ParseError{ kind: ParseErrorKind::FileError, message: format!("{}", error), location: SourceLocation{ file: path.to_string_lossy().to_string(), line: 0, column: 0 } });
         }
 
-        self.parse_string(data.as_str())
+        self.parse_string(data.as_str(), path.to_string_lossy().as_ref())
     }
 
-    pub fn parse_string(&mut self, input: &str) -> Result<(), ParseError> {
-        let mut parser_input = cssparser::ParserInput::new(input);
+    pub fn parse_string(&mut self, input: &str, origin: &str) -> Result<(), ParseError> {
+        let prefix_input = format!("/*# sourceURL={} */\n{}", origin, input);
+        let mut parser_input = cssparser::ParserInput::new(prefix_input.as_str());
         let mut parser = cssparser::Parser::new(&mut parser_input);
         let mut rules_parser = TopLevelParser{};
         let style_sheet_parser = cssparser::StyleSheetParser::new(&mut parser, &mut rules_parser);
@@ -89,7 +90,17 @@ impl StyleSheet {
         if self.errors.is_empty() {
             Ok(())
         } else {
-            Err(ParseError::Unknown(format!("Errors encountered while parsing stylesheet: {:#?}", self.errors)))
+            let mut message;
+            if self.errors.len() == 1 {
+                message = self.errors.first().unwrap().message.clone();
+            } else {
+                message = String::from("Multiple errors:\n");
+                for error in &self.errors {
+                    message.push_str(format!("{}\n", error).as_str());
+                }
+            }
+
+            Err(ParseError { kind: ParseErrorKind::StyleSheetParseError, message, location: SourceLocation { file: origin.to_string(), line: 0, column: 0 } })
         }
     }
 }

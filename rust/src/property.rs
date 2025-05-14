@@ -4,8 +4,8 @@
 use std::sync::{Arc, RwLock, OnceLock};
 
 use crate::{
-    details::ParseError,
-    details::propertysyntax::{parse_syntax, ParsedPropertySyntax},
+    details::{ParseError, SourceLocation},
+    details::property::syntax::{parse_syntax, ParsedPropertySyntax},
     value::Value
 };
 
@@ -56,8 +56,8 @@ impl PropertyDefinition {
         }
     }
 
-    pub fn from_name_syntax(name: &str, syntax: &str) -> Result<PropertyDefinition, ParseError> {
-        let result = parse_syntax(syntax);
+    pub fn from_name_syntax(name: &str, syntax: &str, file: &str, line: u32, column: u32) -> Result<PropertyDefinition, ParseError> {
+        let result = parse_syntax(syntax, SourceLocation { file: file.to_string(), line, column });
         if let Ok(parsed_syntax) = result {
             Ok(
                 PropertyDefinition {
