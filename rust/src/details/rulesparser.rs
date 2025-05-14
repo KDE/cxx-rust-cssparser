@@ -94,8 +94,6 @@ impl<'i, const TOP_LEVEL: bool> cssparser::AtRuleParser<'i> for RulesParser<TOP_
         name: CowRcStr<'i>,
         input: &mut cssparser::Parser<'i, 't>,
     ) -> Result<Self::Prelude, cssparser::ParseError<'i, Self::Error>> {
-        // println!("{}", name);
-
         let name_string = name.to_string();
         match name_string.as_str() {
             "property" => {

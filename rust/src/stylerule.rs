@@ -8,17 +8,14 @@ use crate::details::rulesparser::ParsedRule;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct StyleRule {
-    // pub selectors: Vec<Selector>,
     pub selector: Selector,
     pub properties: Vec<Property>,
-    // pub nested_rules: Option<Vec<Self>>,
 }
 
 impl StyleRule {
     pub fn from_parsed_rule(parsed: &ParsedRule) -> Vec<StyleRule> {
         let mut result = Vec::new();
 
-        // println!("{:#?}", parsed);
         for selector in &parsed.selectors {
             result.push(StyleRule {
                 selector: selector.clone(),
