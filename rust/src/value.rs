@@ -27,6 +27,7 @@ impl From<(u8, u8, u8, f32)> for Color {
 pub enum Unit {
     #[default] Unknown,
     Unsupported,
+    Number,
     Px,
     Em,
     Rem,
@@ -75,7 +76,6 @@ pub struct Dimension {
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum ValueData {
     #[default] Empty,
-    Number(f32),
     Dimension(Dimension),
     String(String),
     Color(Color),
@@ -113,7 +113,7 @@ impl From<&str> for Value {
 
 impl From<f32> for Value {
     fn from(value: f32) -> Self {
-        Value{data: ValueData::Number(value)}
+        Value{data: ValueData::Dimension(Dimension { value, unit: Unit::Number })}
     }
 }
 
