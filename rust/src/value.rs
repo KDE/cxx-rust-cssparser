@@ -23,6 +23,12 @@ impl From<(u8, u8, u8, f32)> for Color {
     }
 }
 
+impl From<(f32, f32, f32, f32)> for Color {
+    fn from(value: (f32, f32, f32, f32)) -> Self {
+        Self{r: (value.0 * 255.0) as u8, g: (value.1 * 255.0) as u8, b: (value.2 * 255.0) as u8, a: (value.3 * 255.0) as u8}
+    }
+}
+
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum Unit {
     #[default] Unknown,
