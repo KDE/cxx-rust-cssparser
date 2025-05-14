@@ -4,6 +4,7 @@
 use crate::details::{parse_error, ParseError, ParseErrorKind, SourceLocation};
 
 use super::syntax::{parse_syntax, ParsedPropertySyntax};
+use super::value::parse_values;
 use crate::property::PropertyDefinition;
 
 struct PropertyDefinitionParser {
@@ -46,6 +47,14 @@ impl<'i> cssparser::DeclarationParser<'i> for PropertyDefinitionParser {
                     _ => return parse_error(input, ParseErrorKind::InvalidPropertyDefinition, String::from("Unexpected value for inherit")),
                 }
             },
+            "initial-value" => {
+                let value_result = parse_values(&self.definition.syntax, input);
+                if let Ok(values) = value_result {
+                    self.definition.initial = values.into();
+                } else {
+                    return Err(value_result.err().unwrap())
+                }
+            }
             _ => (),
         }
 
