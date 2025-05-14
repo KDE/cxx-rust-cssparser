@@ -34,6 +34,12 @@ add_custom_command(
     src/details/mod.rs
     src/details/rulesparser.rs
     src/details/selectorparser.rs
+
+    src/details/property/definitionparser.rs
+    src/details/property/function.rs
+    src/details/property/mod.rs
+    src/details/property/syntax.rs
+    src/details/property/value.rs
 )
 
 set_target_properties(cxx-rust-cssparser-impl PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
