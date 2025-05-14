@@ -14,7 +14,7 @@ use cxx_rust_cssparser::{
 fn setup() {
     let property_definition = property_definition("test");
     if property_definition.is_none() {
-        let property_definition = Arc::new(PropertyDefinition::from_name_syntax("test", "<color>").unwrap());
+        let property_definition = Arc::new(PropertyDefinition::from_name_syntax("test", "<color>", "Test Input", 0, 0).unwrap());
         add_property_definition(&property_definition);
     }
 }
@@ -23,7 +23,7 @@ fn setup() {
 fn minimal() {
     let mut stylesheet = StyleSheet::new();
 
-    let result = stylesheet.parse_string("test { }");
+    let result = stylesheet.parse_string("test { }", "Test Input");
     assert!(result.is_ok());
 
     assert_eq!(stylesheet.rules, Vec::from([
@@ -43,17 +43,17 @@ fn property_registration() {
     let mut stylesheet = StyleSheet::new();
     let property_definition = property_definition("test").unwrap();
 
-    let result = stylesheet.parse_string("example { test: red; }");
+    let result = stylesheet.parse_string("example { test: red; }", "Test Input");
     assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap().to_string());
 
     assert_eq!(
         stylesheet.rules,
-        Vec::from([
+        vec![
             StyleRule {
                 selector: Selector::from_parts(&[
                     SelectorPart::new_with_value(SelectorKind::Type, Value::from("example"))
                 ]),
-                properties: Vec::from([
+                properties: vec![
                     Property {
                         name: String::from("test"),
                         definition: property_definition.clone(),
@@ -61,9 +61,59 @@ fn property_registration() {
                             Value::from(Color {r: 255, g: 0, b: 0, a: 255})
                         ])
                     }
-                ]),
+                ],
             }
-        ])
+        ]
+    );
+}
+
+#[test]
+fn custom_properties() {
+    setup();
+
+    let mut stylesheet = StyleSheet::new();
+
+    let result = stylesheet.parse_string(
+        ":root {
+            --test-color: #ff0000;
+            --test-length: 24px;
+        }
+
+        example {
+            test: var(--test-color);
+        }", "Test Input");
+    assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap().to_string());
+
+    let color_definition = property_definition("--test-color").unwrap();
+    assert_eq!(*color_definition, PropertyDefinition::from_name_syntax_initial("--test-color", "*", &[Value::from(Color{r: 255, g: 0, b: 0, a: 255})], "Test Input", 0, 0).unwrap());
+
+    let length_definition = property_definition("--test-length").unwrap();
+    assert_eq!(*length_definition, PropertyDefinition::from_name_syntax_initial("--test-length", "*", &[Value::from(Dimension{value: 24.0, unit: Unit::Px})], "Test Input", 0, 0).unwrap());
+
+    assert_eq!(
+        stylesheet.rules,
+        vec![
+            StyleRule {
+                selector: Selector::from_parts(&[
+                    SelectorPart::new_with_empty(SelectorKind::DocumentRoot),
+                ]),
+                properties: Vec::new(),
+            },
+            StyleRule {
+                selector: Selector::from_parts(&[
+                    SelectorPart::new_with_value(SelectorKind::Type, Value::from("example")),
+                ]),
+                properties: vec![
+                    Property {
+                        name: String::from("test"),
+                        definition: property_definition("test").unwrap().clone(),
+                        values: vec![
+                            Value::from(Color { r: 255, g: 0, b: 0, a: 255})
+                        ]
+                    }
+                ]
+            }
+        ]
     );
 }
 
@@ -75,13 +125,13 @@ fn nested_block() {
     let property_definition = property_definition("test").unwrap();
 
     let result = stylesheet.parse_string(
-    "example {
-        test: red;
+        "example {
+            test: red;
 
-        nested {
-            test: blue;
-        }
-    }");
+            nested {
+                test: blue;
+            }
+        }", "Test Input");
     assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap().to_string());
 
     let expected = Vec::from([
@@ -129,7 +179,7 @@ fn nested_block() {
         & nested {
             test: blue;
         }
-    }");
+    }", "Test Input");
     assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap().to_string());
 
     let rules = &stylesheet.rules;

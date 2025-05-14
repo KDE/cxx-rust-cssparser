@@ -109,4 +109,11 @@ test_cases! {
                 SelectorPart::new_with_empty(SelectorKind::RelativeParent),
             ])
         ];
+
+    all:
+        check_selector_toplevel "*", vec![
+            Selector::from_parts(&[
+                SelectorPart::new_with_empty(SelectorKind::AnyElement),
+            ])
+        ]
 }
