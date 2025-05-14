@@ -47,4 +47,9 @@ target_include_directories(cxx-rust-cssparser-impl PUBLIC ${CMAKE_CURRENT_BINARY
 
 target_link_libraries(cxx-rust-cssparser-impl pthread dl ${RUST_LIB})
 
+if (BUILD_TESTING)
+    add_test(NAME rust COMMAND cargo test)
+    set_tests_properties(rust PROPERTIES ENVIRONMENT "CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+endif()
+
 install(FILES ${RUST_HEADER} DESTINATION ${KDE_INSTALL_INCLUDEDIR}/cxx-rust-cssparser)
