@@ -74,6 +74,10 @@ pub struct Dimension {
 }
 
 impl Dimension {
+    pub fn px(value: f32) -> Dimension {
+        Dimension { value, unit: Unit::Px }
+    }
+
     pub fn is_number(&self) -> bool {
         self.unit == Unit::Number
     }
