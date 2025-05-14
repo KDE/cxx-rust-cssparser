@@ -1,37 +1,52 @@
+use ffi::ValueConversionError;
+
 use crate::selector::{Selector, SelectorPart, SelectorKind};
 use crate::property::Property;
 use crate::stylerule::StyleRule;
 use crate::stylesheet::StyleSheet;
 use crate::value;
-use crate::details::ParseError;
 
 use crate::value::Value;
 
 #[cxx::bridge(namespace = "cssparser::rust")]
 mod ffi {
+    #[derive(Debug, Clone, Copy)]
+    pub enum Unit {
+        Unknown,
+        Unsupported,
+        Number,
+        Px,
+        Em,
+        Rem,
+        Pt,
+        Percent,
+        Degrees,
+        Radians,
+        Seconds,
+        Milliseconds,
+    }
+
     pub enum ValueType {
         Empty,
-        Length,
-        Number,
-        Percentage,
+        Dimension,
         String,
         Color,
         Image,
         Url,
         Integer,
-        Angle,
-        Time,
     }
 
     #[derive(Debug)]
     pub enum SelectorKind {
         Unknown,
+        AnyElement,
         Type,
         Class,
         Id,
         PseudoClass,
         Attribute,
         RelativeParent,
+        DocumentRoot,
         DescendantCombinator,
         ChildCombinator,
     }
@@ -45,24 +60,13 @@ mod ffi {
     }
 
     #[derive(Debug, Clone, Copy)]
-    pub enum Unit {
-        Unknown,
-        Unsupported,
-        Px,
-        Em,
-        Rem,
-        Pt,
-        Percent,
-        Degrees,
-        Radians,
-        Seconds,
-        Milliseconds,
-    }
-
-    #[derive(Debug, Clone, Copy)]
     pub struct Dimension {
         value: f32,
         unit: Unit,
+    }
+
+    pub struct ValueConversionError {
+        message: String,
     }
 
     pub struct StyleSheetError {
@@ -78,14 +82,12 @@ mod ffi {
 
         type Value;
         fn value_type(self: &Value) -> ValueType;
-        fn to_length(self: &Value) -> Result<Dimension>;
-        fn to_number(self: &Value) -> Result<f32>;
-        fn to_percentage(self: &Value) -> Result<f32>;
+        fn to_dimension(self: &Value) -> Result<Dimension>;
         fn to_string(self: &Value) -> Result<&str>;
         fn to_color(self: &Value) -> Result<Color>;
+        fn to_image(self: &Value) -> Result<&str>;
+        fn to_url(self: &Value) -> Result<&str>;
         fn to_integer(self: &Value) -> Result<i32>;
-        fn to_angle(self: &Value) -> Result<Dimension>;
-        fn to_time(self: &Value) -> Result<Dimension>;
 
         type SelectorPart;
         fn kind(self: &SelectorPart) -> SelectorKind;
@@ -107,7 +109,7 @@ mod ffi {
         fn errors(self: &StyleSheet) -> Vec<StyleSheetError>;
         fn set_root_path(self: &mut StyleSheet, root_path: &str);
         fn parse_file(self: &mut StyleSheet, file_name: &str) -> Result<()>;
-        fn parse_string(self: &mut StyleSheet, data: &str) -> Result<()>;
+        fn parse_string(self: &mut StyleSheet, data: &str, origin: &str) -> Result<()>;
 
         fn create_stylesheet() -> Box<StyleSheet>;
     }
@@ -129,21 +131,18 @@ macro_rules! convert_enum {
 
 convert_enum!(value::ValueData, ffi::ValueType, {
     value::ValueData::Empty => Empty,
-    value::ValueData::Length(_) => Length,
-    value::ValueData::Number(_) => Number,
-    value::ValueData::Percentage(_) => Percentage,
+    value::ValueData::Dimension(_) => Dimension,
     value::ValueData::String(_) => String,
     value::ValueData::Color(_) => Color,
     value::ValueData::Image(_) => Image,
     value::ValueData::Url(_) => Url,
     value::ValueData::Integer(_) => Integer,
-    value::ValueData::Angle(_) => Angle,
-    value::ValueData::Time(_) => Time,
 });
 
 convert_enum!(value::Unit, ffi::Unit, {
     value::Unit::Unknown => Unknown,
     value::Unit::Unsupported => Unsupported,
+    value::Unit::Number => Number,
     value::Unit::Px => Px,
     value::Unit::Em => Em,
     value::Unit::Rem => Rem,
@@ -157,12 +156,14 @@ convert_enum!(value::Unit, ffi::Unit, {
 
 convert_enum!(SelectorKind, ffi::SelectorKind, {
     SelectorKind::Unknown => Unknown,
+    SelectorKind::AnyElement => AnyElement,
     SelectorKind::Type => Type,
     SelectorKind::Class => Class,
     SelectorKind::Id => Id,
     SelectorKind::PseudoClass => PseudoClass,
     SelectorKind::Attribute => Attribute,
     SelectorKind::RelativeParent => RelativeParent,
+    SelectorKind::DocumentRoot => DocumentRoot,
     SelectorKind::DescendantCombinator => DescendantCombinator,
     SelectorKind::ChildCombinator => ChildCombinator,
 });
@@ -199,68 +200,44 @@ impl value::Value {
         self.data.clone().into()
     }
 
-    fn to_length(&self) -> Result<ffi::Dimension, ParseError> {
-        if let value::ValueData::Length(dimension) = &self.data {
+    fn to_dimension(&self) -> Result<ffi::Dimension, ffi::ValueConversionError> {
+        if let value::ValueData::Dimension(dimension) = &self.data {
             Ok(dimension.into())
         } else {
-            Err(ParseError::InvalidPropertyValue(String::from("Not a length value")))
+            Err(ValueConversionError{ message: String::from("Not a length value") })
         }
     }
 
-    fn to_number(&self) -> Result<f32, ParseError> {
-        if let value::ValueData::Number(number) = self.data {
-            Ok(number)
-        } else {
-            Err(ParseError::InvalidPropertyValue(String::from("Not a number value")))
-        }
-    }
-
-    fn to_percentage(&self) -> Result<f32, ParseError> {
-        if let value::ValueData::Percentage(percentage) = self.data {
-            Ok(percentage)
-        } else {
-            Err(ParseError::InvalidPropertyValue(String::from("Not a percentage value")))
-        }
-    }
-
-    fn to_string(&self) -> Result<&str, ParseError> {
+    fn to_string(&self) -> Result<&str, ffi::ValueConversionError> {
         if let value::ValueData::String(string) = &self.data {
             Ok(string.as_str())
         } else {
-            Err(ParseError::InvalidPropertyValue(String::from("Not a string value")))
+            Err(ValueConversionError{ message: String::from("Not a string value") })
         }
     }
 
-    fn to_color(&self) -> Result<ffi::Color, ParseError> {
+    fn to_color(&self) -> Result<ffi::Color, ffi::ValueConversionError> {
         if let value::ValueData::Color(color) = &self.data {
             Ok(color.into())
         } else {
-            Err(ParseError::InvalidPropertyValue(String::from("Not a color value")))
+            Err(ffi::ValueConversionError{ message: String::from("Not a color value") })
         }
     }
 
-    fn to_integer(&self) -> Result<i32, ParseError> {
+    fn to_integer(&self) -> Result<i32, ffi::ValueConversionError> {
         if let value::ValueData::Integer(integer) = self.data {
             Ok(integer)
         } else {
-            Err(ParseError::InvalidPropertyValue(String::from("Not an integer value")))
+            Err(ffi::ValueConversionError{ message: String::from("Not an integer value") })
         }
     }
 
-    fn to_angle(&self) -> Result<ffi::Dimension, ParseError> {
-        if let value::ValueData::Angle(dimension) = &self.data {
-            Ok(dimension.into())
-        } else {
-            Err(ParseError::InvalidPropertyValue(String::from("Not an angle value")))
-        }
+    fn to_image(&self) -> Result<&str, ffi::ValueConversionError> {
+        Err(ffi::ValueConversionError{ message: String::from("Unimplemented") })
     }
 
-    fn to_time(&self) -> Result<ffi::Dimension, ParseError> {
-        if let value::ValueData::Time(dimension) = &self.data {
-            Ok(dimension.into())
-        } else {
-            Err(ParseError::InvalidPropertyValue(String::from("Not a time value")))
-        }
+    fn to_url(&self) -> Result<&str, ffi::ValueConversionError> {
+        Err(ffi::ValueConversionError{ message: String::from("Unimplemented") })
     }
 }
 
@@ -325,4 +302,10 @@ impl StyleSheet {
 
 fn create_stylesheet() -> Box<StyleSheet> {
     Box::new(StyleSheet::new())
+}
+
+impl std::fmt::Display for ValueConversionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Value could not be converted: {}", self.message)
+    }
 }
