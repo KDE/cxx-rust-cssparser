@@ -17,6 +17,10 @@ impl StyleRule {
         let mut result = Vec::new();
 
         for selector in &parsed.selectors {
+            if selector.parts.is_empty() && parsed.properties.is_empty() {
+                continue;
+            }
+
             result.push(StyleRule {
                 selector: selector.clone(),
                 properties: parsed.properties.clone(),
