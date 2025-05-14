@@ -102,6 +102,7 @@ impl SelectorParser {
                     selectors::parser::Component::NonTSPseudoClass(pseudo_class) => selector.push_part(SelectorKind::PseudoClass, Value::from(pseudo_class.0.as_str())),
                     selectors::parser::Component::ParentSelector => selector.push_part(SelectorKind::RelativeParent, Value::empty()),
                     selectors::parser::Component::Root => selector.push_part(SelectorKind::DocumentRoot, Value::empty()),
+                    selectors::parser::Component::ExplicitUniversalType => selector.push_part(SelectorKind::AnyElement, Value::empty()),
 
                     selectors::parser::Component::Combinator(combinator) => {
                         match combinator {

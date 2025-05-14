@@ -6,6 +6,7 @@ use crate::value::Value;
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SelectorKind {
     Unknown,
+    AnyElement,
     Type,
     Class,
     Id,
