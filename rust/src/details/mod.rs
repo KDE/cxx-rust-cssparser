@@ -56,6 +56,7 @@ impl std::error::Error for ParseError {
 
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "In file \"{}\" at line {} column {}: ", self.location.file, self.location.line, self.location.column)?;
         match self.kind {
             ParseErrorKind::Unspecified => write!(f, "Unspecified error"),
             ParseErrorKind::Unknown => write!(f, "Unknown error: {}", self.message),
