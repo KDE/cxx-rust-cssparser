@@ -5,8 +5,8 @@ edition = "2021"
 
 [dependencies]
 cxx = "1.0"
-cssparser = "0.34"
-selectors = "0.26.0"
+cssparser = "0.35"
+selectors = "0.27.0"
 precomputed-hash = "0.1.1"
 nom = "8.0.0"
 
