@@ -75,16 +75,13 @@ pub struct Dimension {
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum ValueData {
     #[default] Empty,
-    Length(Dimension),
     Number(f32),
-    Percentage(f32),
+    Dimension(Dimension),
     String(String),
     Color(Color),
     Image(String),
     Url(String),
     Integer(i32),
-    Angle(Dimension),
-    Time(Dimension),
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -141,6 +138,6 @@ impl From<Color> for Value {
 
 impl From<Dimension> for Value {
     fn from(value: Dimension) -> Self {
-        Value{data: ValueData::Length(value)}
+        Value{data: ValueData::Dimension(value)}
     }
 }
