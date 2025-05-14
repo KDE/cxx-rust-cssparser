@@ -71,6 +71,12 @@ impl PropertyDefinition {
             Err(result.err().unwrap())
         }
     }
+
+    pub fn from_name_syntax_initial(name: &str, syntax: &str, initial: &[Value], file: &str, line: u32, column: u32) -> Result<PropertyDefinition, ParseError> {
+        let mut pd = Self::from_name_syntax(name, syntax, file, line, column)?;
+        pd.initial = Vec::from(initial);
+        Ok(pd)
+    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]
