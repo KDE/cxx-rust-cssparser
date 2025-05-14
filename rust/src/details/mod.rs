@@ -5,21 +5,26 @@ pub mod identifier;
 pub mod rulesparser;
 pub mod selectorparser;
 
-pub mod propertysyntax;
-pub mod propertyparser;
+pub mod property;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ParseErrorKind {
     Unspecified,
+    Unimplemented,
     UnexpectedEndOfInput,
     Unknown,
     UnknownProperty,
+    UnexpectedToken,
     InvalidSelectors,
     InvalidPropertySyntax,
     InvalidPropertyValue,
     InvalidPropertyDefinition,
+    PropertyValueDoesNotMatchSyntax,
     UnsupportedAtRule,
+    InvalidAtRule,
+    InvalidQualifiedRule,
     FileError,
+    StyleSheetParseError,
 }
 
 #[derive(Debug, Clone)]
@@ -46,7 +51,6 @@ pub struct ParseError {
     pub location: SourceLocation,
 }
 
-
 pub fn parse_error<'i, 't, R>(parser: &cssparser::Parser<'i, 't>, kind: ParseErrorKind, message: String) -> Result<R, cssparser::ParseError<'i, ParseError>> {
     Err(parser.new_custom_error(ParseError{ kind, message, location: SourceLocation::from_file_location(parser.current_source_url().unwrap_or("").to_string(), parser.current_source_location())}))
 }
@@ -59,14 +63,21 @@ impl std::fmt::Display for ParseError {
         write!(f, "In file \"{}\" at line {} column {}: ", self.location.file, self.location.line, self.location.column)?;
         match self.kind {
             ParseErrorKind::Unspecified => write!(f, "Unspecified error"),
+            ParseErrorKind::Unimplemented => write!(f, "Feature is not yet implemented"),
+            ParseErrorKind::UnexpectedEndOfInput => write!(f, "Unexpected end of input"),
             ParseErrorKind::Unknown => write!(f, "Unknown error: {}", self.message),
             ParseErrorKind::UnknownProperty => write!(f, "Unknown Property: {}", self.message),
+            ParseErrorKind::UnexpectedToken => write!(f, "Unexpected Token: {}", self.message),
             ParseErrorKind::InvalidSelectors => write!(f, "Invalid Selectors: {}", self.message),
             ParseErrorKind::InvalidPropertySyntax => write!(f, "Invalid property syntax: {}", self.message),
             ParseErrorKind::InvalidPropertyValue => write!(f, "Invalid property value: {}", self.message),
             ParseErrorKind::InvalidPropertyDefinition => write!(f, "Invalid property definition: {}", self.message),
+            ParseErrorKind::PropertyValueDoesNotMatchSyntax => write!(f, "Property value does not match syntax: {}", self.message),
             ParseErrorKind::UnsupportedAtRule => write!(f, "Unsupported @-rule: {}", self.message),
+            ParseErrorKind::InvalidAtRule => write!(f, "Invalid @-rule: {}", self.message),
+            ParseErrorKind::InvalidQualifiedRule => write!(f, "Invalid qualified rule"),
             ParseErrorKind::FileError => write!(f, "IO Error: {}", self.message),
+            ParseErrorKind::StyleSheetParseError => write!(f, "Stylesheet failed to parse: {}", self.message),
         }
     }
 }
