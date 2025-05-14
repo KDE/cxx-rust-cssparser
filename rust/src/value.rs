@@ -73,6 +73,30 @@ pub struct Dimension {
     pub unit: Unit,
 }
 
+impl Dimension {
+    pub fn is_number(&self) -> bool {
+        self.unit == Unit::Number
+    }
+
+    pub fn is_length(&self) -> bool {
+        match self.unit {
+            Unit::Px | Unit::Em | Unit::Rem | Unit::Pt => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_percent(&self) -> bool {
+        self.unit == Unit::Percent
+    }
+
+    pub fn is_angle(&self) -> bool {
+        match self.unit {
+            Unit::Degrees | Unit::Radians => true,
+            _ => false
+        }
+    }
+}
+
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum ValueData {
     #[default] Empty,
