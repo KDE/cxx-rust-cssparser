@@ -1,0 +1,355 @@
+// SPDX-License-Identifier: LGPL-2.1-only OR LGPL-3.0-only OR LicenseRef-KDE-Accepted-LGPL
+// SPDX-FileCopyrightText: 2025 Arjen Hiemstra <ahiemstra@heimr.nl>
+
+use nom::{
+    IResult,
+    Parser,
+    branch::alt,
+    bytes::complete::tag,
+    combinator::recognize,
+    character::complete::{char, satisfy, space0, digit1},
+    error::ErrorKind,
+    multi::{many0_count, many1},
+    sequence::{delimited, pair, preceded, terminated, separated_pair},
+};
+
+use crate::details::{ParseError, ParseErrorKind, SourceLocation};
+
+use crate::value::{Value, ValueData};
+
+struct SyntaxParseError<I>(I, String);
+
+impl<I> std::fmt::Debug for SyntaxParseError<I> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SyntaxParseError")
+         .field("message", &self.1)
+         .finish()
+    }
+}
+
+impl<I> nom::error::ParseError<I> for SyntaxParseError<I> {
+    fn from_error_kind(input: I, kind: ErrorKind) -> Self {
+        match kind {
+            ErrorKind::Tag => SyntaxParseError(input, String::from("Input did not match a tag")),
+            _ => SyntaxParseError(input, String::from(kind.description()))
+        }
+    }
+
+    fn append(input: I, kind: ErrorKind, _other: Self) -> Self {
+        match kind {
+            ErrorKind::Alt => SyntaxParseError(input, String::from("Input matched none of the alternatives")),
+            _ => SyntaxParseError(input, String::from("Multiple errors"))
+        }
+    }
+}
+
+type SyntaxParseResult<I, O> = IResult<I, O, SyntaxParseError<I>>;
+
+fn make_error<I, O>(input: I, message: String) -> SyntaxParseResult<I, O> {
+    Err(nom::Err::Error(SyntaxParseError(input, message)))
+}
+
+fn make_failure<I, O>(input: I, message: String) -> SyntaxParseResult<I, O> {
+    Err(nom::Err::Failure(SyntaxParseError(input, message)))
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum DataType {
+    Length,
+    Number,
+    Percentage,
+    LengthPercentage,
+    String,
+    Color,
+    Url,
+    Integer,
+    Angle,
+    Time,
+    Resolution,
+    TransformFunction,
+    CustomIdent,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum SyntaxComponent {
+    DataType(DataType),
+    Keyword(String),
+    SpaceSeparatedList(DataType),
+    CommaSeparatedList(DataType),
+    Repeat{data_type: DataType, minimum: usize, maximum: usize}
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum SyntaxGroup {
+    Component(SyntaxComponent),
+    Expression(Vec<SyntaxAlternatives>),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum SyntaxAlternatives {
+    Component(SyntaxComponent),
+    Group(SyntaxGroup),
+    Alternatives(Vec<SyntaxGroup>),
+}
+
+#[derive(Debug, Default, PartialEq, Clone)]
+pub enum ParsedPropertySyntax {
+    #[default] Empty,
+    Universal,
+    Expression(Vec<SyntaxAlternatives>),
+}
+
+/*
+ * This implements an extended version of the custom property syntax, according
+ * to the following EBNF:
+ *
+ * custom_ident_start ::= [A-Z] | [a-z] | "_" | (a range of unicode symbols)
+ * custom_ident ::= custom_ident_start | [0-9] | "-"
+ * keyword ::= custom_ident_start custom_ident*
+ * data_type_name ::= "length-percentage" | "length" | (several other support data types)
+ * data_type ::= "<" data_type_name ">"
+ * space_separated_list ::= data_type "+"
+ * comma_separated_list ::= data_type "#"
+ * repeats ::= data_type "{" [0-9]+ "," [0-9]+ "}"
+ * component ::= data_type | keyword | space_separated | comma_separated | repeats
+ * group ::= component | ("(" expression ")")
+ * alternatives ::= group (" | " group)*
+ * expression ::= alternatives (" " alternatives)*
+ */
+
+fn custom_ident_start(input: char) -> bool {
+    match input {
+        'a'..='z' => true,
+        'A'..='Z' => true,
+        '_' => true,
+        '\u{00B7}' => true,
+        '\u{00CD}'..='\u{00D7}' => true,
+        '\u{00D8}'..='\u{00F6}' => true,
+        '\u{00F8}'..='\u{037D}' => true,
+        '\u{037F}'..='\u{1FFF}' => true,
+        '\u{200C}' => true,
+        '\u{200D}' => true,
+        '\u{203F}' => true,
+        '\u{2040}' => true,
+        '\u{2070}'..='\u{218F}' => true,
+        '\u{2C00}'..='\u{2FEF}' => true,
+        '\u{3001}'..='\u{D7FF}' => true,
+        '\u{F900}'..='\u{FDCF}' => true,
+        '\u{FDF0}'..='\u{FFFD}' => true,
+        '\u{10000}'..='\u{10FFFF}' => true,
+        _ => false,
+    }
+}
+
+fn custom_ident(input: char) -> bool {
+    if custom_ident_start(input) || input.is_numeric() || input == '-' {
+        true
+    } else {
+        false
+    }
+}
+
+fn keyword(input: &str) -> SyntaxParseResult<&str, SyntaxComponent> {
+    let result = recognize(
+        pair(
+            satisfy(custom_ident_start),
+            many0_count::<&str, SyntaxParseError<&str>, _>(satisfy(custom_ident))
+        )
+    ).parse(input);
+
+    if let Ok((remain, keyword)) = result {
+        Ok((remain, SyntaxComponent::Keyword(keyword.to_string())))
+    } else {
+        make_error(input, String::from("Input is not a keyword"))
+    }
+}
+
+fn data_type_name(input: &str) -> SyntaxParseResult<&str, &str> {
+    let result = alt((
+        tag::<&str, &str, SyntaxParseError<_>>("length-percentage"),
+        tag("length"),
+        tag("number"),
+        tag("percentage"),
+        tag("string"),
+        tag("color"),
+        tag("url"),
+        tag("integer"),
+        tag("angle"),
+        tag("time"),
+        tag("resolution"),
+        tag("transform-function"),
+        tag("custom-ident"),
+    )).parse(input);
+
+    if let Ok((remain, name)) = result {
+        Ok((remain, name))
+    } else {
+        make_error(input, String::from("Input is not a valid data type name"))
+    }
+}
+
+fn data_type(input: &str) -> SyntaxParseResult<&str, SyntaxComponent> {
+    let result = delimited(char('<'), data_type_name, char('>')).parse(input);
+
+    if let Ok((remain, name)) = result {
+        let data_type = match name {
+            "length-percentage" => DataType::LengthPercentage,
+            "length" => DataType::Length,
+            "number" => DataType::Number,
+            "percentage" => DataType::Percentage,
+            "string" => DataType::String,
+            "color" => DataType::Color,
+            "url" => DataType::Url,
+            "integer" => DataType::Integer,
+            "angle" => DataType::Angle,
+            "time" => DataType::Time,
+            "resolution" => DataType::Resolution,
+            "transform-function" => DataType::TransformFunction,
+            "custom-ident" => DataType::CustomIdent,
+            _ => return make_failure(input, String::from("Invalid data type"))
+        };
+        Ok((remain, SyntaxComponent::DataType(data_type)))
+    } else {
+        make_error(input, String::from("Input is not a data type"))
+    }
+}
+
+fn space_separated_list(input: &str) -> SyntaxParseResult<&str, SyntaxComponent> {
+    let (remain, data_type) = terminated(data_type, char('+')).parse(input)?;
+    if let SyntaxComponent::DataType(data_type_name) = data_type {
+        Ok((remain, SyntaxComponent::SpaceSeparatedList(data_type_name)))
+    } else {
+        make_error(input, String::from("Input is not a space separated list"))
+    }
+}
+
+fn comma_separated_list(input: &str) -> SyntaxParseResult<&str, SyntaxComponent> {
+    let (remain, data_type) = terminated(data_type, char('#')).parse(input)?;
+    if let SyntaxComponent::DataType(data_type_name) = data_type {
+        Ok((remain, SyntaxComponent::CommaSeparatedList(data_type_name)))
+    } else {
+        make_error(input, String::from("Input is not a comma separated list"))
+    }
+}
+
+fn repeat(input: &str) -> SyntaxParseResult<&str, SyntaxComponent> {
+    let result = pair(
+        data_type,
+        delimited(
+            char('{'),
+            separated_pair(digit1, char(','), digit1),
+            char('}'),
+        )
+    ).parse(input);
+
+    if let Ok((remain, (data_type, (minimum, maximum)))) = result {
+        if let SyntaxComponent::DataType(type_name) = data_type {
+            let min: usize = minimum.parse().unwrap();
+            let max: usize = maximum.parse().unwrap();
+            return Ok((remain, SyntaxComponent::Repeat{data_type: type_name, minimum: min, maximum: max}));
+        }
+    }
+
+    make_error(input, String::from("Input is not a valid repeat pattern"))
+}
+
+fn component(input: &str) -> SyntaxParseResult<&str, SyntaxComponent> {
+    let result = delimited(
+        space0,
+        alt((
+            repeat,
+            space_separated_list,
+            comma_separated_list,
+            data_type,
+            keyword,
+        )),
+        space0
+    ).parse(input);
+
+    if let Ok((remain, component)) = result {
+        Ok((remain, component))
+    } else {
+        make_error(input, String::from("Input did not match any syntax component"))
+    }
+}
+
+fn group(input: &str) -> SyntaxParseResult<&str, SyntaxGroup> {
+    let expression = delimited(
+        delimited(space0, char('('), space0),
+        expression,
+        delimited(space0, char(')'), space0),
+    ).parse(input);
+    if let Ok((remain, result)) = expression {
+        if let ParsedPropertySyntax::Expression(exp) = result {
+            return Ok((remain, SyntaxGroup::Expression(exp)));
+        }
+    }
+
+    let component = component.parse(input);
+    if let Ok((remain, comp)) = component {
+        Ok((remain, SyntaxGroup::Component(comp)))
+    } else {
+        make_error(input, String::from("Input did not match a group"))
+    }
+}
+
+fn alternatives(input: &str) -> SyntaxParseResult<&str, SyntaxAlternatives> {
+    let alternatives = pair(group, many1(preceded(char('|'), group))).parse(input);
+    if let Ok((remain, result)) = alternatives {
+        let mut output = Vec::new();
+        output.push(result.0);
+        output.extend(result.1);
+        return Ok((remain, SyntaxAlternatives::Alternatives(output)));
+    }
+
+    let group = group.parse(input);
+    if let Ok((remain, group_data)) = group {
+        if let SyntaxGroup::Component(comp) = group_data {
+            Ok((remain, SyntaxAlternatives::Component(comp)))
+        } else {
+            Ok((remain, SyntaxAlternatives::Group(group_data)))
+        }
+    } else {
+        make_error(input, String::from("Input did not match an alternatives block"))
+    }
+}
+
+fn expression(input: &str) ->SyntaxParseResult<&str, ParsedPropertySyntax> {
+    let result = many1(alternatives).parse(input);
+
+    if let Ok((remain, alternatives)) = result {
+        Ok((remain, ParsedPropertySyntax::Expression(alternatives)))
+    } else {
+        make_error(input, String::from("Input did not match an expression"))
+    }
+}
+
+fn universal(input: &str) -> SyntaxParseResult<&str, ParsedPropertySyntax> {
+    let result = delimited(space0::<&str, SyntaxParseError<&str>>, char('*'), space0).parse(input);
+
+    if let Ok((remain, _)) = result {
+        Ok((remain, ParsedPropertySyntax::Universal))
+    } else {
+        make_error(input, String::from("Input did not match the universal syntax"))
+    }
+}
+
+pub fn parse_syntax(input: &str, location: SourceLocation) -> Result<ParsedPropertySyntax, ParseError> {
+    let result = alt((
+        universal,
+        expression,
+    )).parse(input);
+
+    if let Ok((_, syntax)) = result {
+        Ok(syntax)
+    } else {
+        match result.err().unwrap() {
+            nom::Err::Incomplete(_) => Err(ParseError{ kind: ParseErrorKind::InvalidPropertySyntax, message: String::from("Incomplete input"), location}),
+            nom::Err::Error(error) | nom::Err::Failure(error) => {
+                let message = format!("Input {} encountered error: {}", error.0, error.1);
+                Err(ParseError{ kind: ParseErrorKind::InvalidPropertySyntax, message, location})
+            }
+        }
+    }
+}
+

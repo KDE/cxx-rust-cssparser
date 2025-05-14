@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: LGPL-2.1-only OR LGPL-3.0-only OR LicenseRef-KDE-Accepted-LGPL
 // SPDX-FileCopyrightText: 2025 Arjen Hiemstra <ahiemstra@heimr.nl>
 
-use super::propertysyntax::ParsedPropertySyntax;
-use super::ParseError;
-use crate::parse_error;
+use crate::details::{parse_error, ParseError, ParseErrorKind, SourceLocation};
 
-use crate::details::propertysyntax::{parse_syntax, parse_values};
+use super::syntax::{parse_syntax, ParsedPropertySyntax};
 use crate::property::PropertyDefinition;
 
 struct PropertyDefinitionParser {
@@ -28,21 +26,15 @@ impl<'i> cssparser::DeclarationParser<'i> for PropertyDefinitionParser {
     type Declaration = ();
     type Error = ParseError;
 
-    fn parse_value<'t>(
-        &mut self,
-        name: cssparser::CowRcStr<'i>,
-        input: &mut cssparser::Parser<'i, 't>,
-    ) -> Result<Self::Declaration, cssparser::ParseError<'i, Self::Error>> {
+    fn parse_value<'t>(&mut self, name: cssparser::CowRcStr<'i>, input: &mut cssparser::Parser<'i, 't>, _state: &cssparser::ParserState) -> Result<Self::Declaration, cssparser::ParseError<'i, Self::Error>> {
         match name.to_lowercase().as_str() {
             "syntax" => {
-                let syntax_string = input.expect_string()?.to_string();
-                // println!("syntax string {:#?}", syntax_string);
-
-                let parsed = parse_syntax(syntax_string.as_str());
+                let location = SourceLocation::from_file_location(input.current_source_url().unwrap_or("").to_string(), input.current_source_location());
+                let parsed = parse_syntax(input.expect_string()?.as_ref(), location);
                 if let Ok(syntax) = parsed {
                     self.definition.syntax = syntax;
                 } else {
-                    return parse_error!(input, InvalidPropertyDefinition, String::from("Expected string for property syntax"));
+                    return parse_error(input, ParseErrorKind::InvalidPropertyDefinition, String::from("Expected string for property syntax"));
                 }
             },
             "inherits" => {
@@ -51,26 +43,18 @@ impl<'i> cssparser::DeclarationParser<'i> for PropertyDefinitionParser {
                 match value_string.to_lowercase().as_str() {
                     "true" => self.definition.inherit = true,
                     "false" => self.definition.inherit = false,
-                    _ => return parse_error!(input, InvalidPropertyDefinition, String::from("Unexpected value for inherit")),
+                    _ => return parse_error(input, ParseErrorKind::InvalidPropertyDefinition, String::from("Unexpected value for inherit")),
                 }
             },
-            "initial-value" => {
-                let value_result = parse_values(&self.definition.syntax, input);
-                if let Ok(value) = value_result {
-                    self.definition.initial = value;
-                } else {
-                    return Err(value_result.err().unwrap())
-                }
-            }
             _ => (),
         }
 
         if self.definition.name.is_empty() {
-            parse_error!(input, InvalidPropertyDefinition, String::from("name is required for property definitions"))
+            parse_error(input, ParseErrorKind::InvalidPropertyDefinition, String::from("'name' is required for property definitions"))
         } else if let ParsedPropertySyntax::Empty = self.definition.syntax {
-            parse_error!(input, InvalidPropertyDefinition, String::from("syntax is required for property definitions"))
+            parse_error(input, ParseErrorKind::InvalidPropertyDefinition, String::from("'syntax' is required for property definitions"))
         } else if !input.is_exhausted() {
-            Err(input.new_custom_error(ParseError::InvalidPropertyDefinition(String::from("Unexpected trailing characters"))))
+            parse_error(input, ParseErrorKind::InvalidPropertyDefinition, String::from("Unexpected trailing characters"))
         } else {
             Ok(())
         }
