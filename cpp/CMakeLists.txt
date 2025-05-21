@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: BSD-2-Clause
+# SPDX-FileCopyrightText: 2025 Arjen Hiemstra <ahiemstra@heimr.nl>
+
 add_library(cxx-rust-cssparser)
 
 target_sources(cxx-rust-cssparser PRIVATE

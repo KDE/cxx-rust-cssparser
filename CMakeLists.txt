@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: BSD-2-Clause
+# SPDX-FileCopyrightText: 2025 Arjen Hiemstra <ahiemstra@heimr.nl>
+
 cmake_minimum_required(VERSION 3.20)
 
 project(cxx-rust-cssparser VERSION 1.0.0)

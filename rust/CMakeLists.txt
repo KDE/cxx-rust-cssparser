@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: BSD-2-Clause
+# SPDX-FileCopyrightText: 2025 Arjen Hiemstra <ahiemstra@heimr.nl>
+
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CARGO_CMD cargo build --verbose)
     set(TARGET_DIR "debug")
