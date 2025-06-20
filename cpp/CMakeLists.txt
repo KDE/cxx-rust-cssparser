@@ -23,6 +23,12 @@ target_include_directories(cxx-rust-cssparser PUBLIC
     "$<INSTALL_INTERFACE:${KDE_INSTALL_INCLUDEDIR}/cxx-rust-cssparser>"
 )
 
+if (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+    # On FreeBSD, we cannot compile with "-Wl,--no-undefined" because that will
+    # fail to find the "environ" symbol.
+    string(REPLACE " -Wl,--no-undefined " " " CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
+endif()
+
 set_target_properties(cxx-rust-cssparser PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}
