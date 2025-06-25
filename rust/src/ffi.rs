@@ -240,7 +240,11 @@ impl value::Value {
     }
 
     fn to_url(&self) -> Result<&str, ffi::ValueConversionError> {
-        Err(ffi::ValueConversionError{ message: String::from("Unimplemented") })
+        if let value::ValueData::Url(url) = &self.data {
+            Ok(url.as_str())
+        } else {
+            Err(ffi::ValueConversionError{ message: String::from("Not a URL") })
+        }
     }
 }
 

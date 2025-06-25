@@ -4,6 +4,7 @@
 use super::syntax::*;
 use super::function::*;
 
+use crate::details::unwrap_parse_error;
 use crate::details::SourceLocation;
 use crate::details::{parse_error, ParseError, ParseErrorKind};
 use crate::value::{Color, Dimension, Value, Unit};
@@ -94,6 +95,11 @@ fn parse_string<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> ParseValueCom
     }
 }
 
+fn parse_url<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> ParseValueComponentResult<'i> {
+    let url = parser.expect_url()?;
+    return Ok(Value::new_url(url.as_ref()));
+}
+
 fn parse_function<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> Result<Vec<Value>, cssparser::ParseError<'i, ParseError>> {
     let function_name = parser.expect_function()?.to_string();
 
@@ -113,12 +119,13 @@ fn parse_function<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> Result<Vec<
 }
 
 fn parse_value_component<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> Result<Vec<Value>, cssparser::ParseError<'i, ParseError>> {
-    const PARSE_FUNCTIONS: [for<'i, 't> fn(&mut cssparser::Parser<'i, 't>) -> ParseValueComponentResult<'i>; 5] = [
+    const PARSE_FUNCTIONS: [for<'i, 't> fn(&mut cssparser::Parser<'i, 't>) -> ParseValueComponentResult<'i>; 6] = [
         parse_integer,
         parse_number,
         parse_color,
         parse_dimension,
         parse_string,
+        parse_url,
     ];
 
     for function in PARSE_FUNCTIONS {

@@ -29,6 +29,9 @@ Value convert_value(const rust::Value &input)
         case rust::ValueType::Integer: {
             return Value(input.to_integer());
         }
+        case rust::ValueType::Url: {
+            return Value(Url{ .data = std::string(input.to_url())});
+        }
         default:
             break;
         }

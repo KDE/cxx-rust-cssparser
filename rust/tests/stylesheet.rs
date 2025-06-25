@@ -251,6 +251,13 @@ fn complex() {
                 Value::from(Dimension{value: 2.0, unit: Unit::Rem}),
             ]
         },
+        Property {
+            name: String::from("background-image"),
+            definition: property_definition("background-image").unwrap(),
+            values: vec![
+                Value::new_url("background.svg"),
+            ]
+        }
     ];
     let properties: Vec<Property> = rules.first().unwrap().properties.clone();
     assert_eq!(properties, expected_properties);

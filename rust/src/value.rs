@@ -127,6 +127,10 @@ impl Value {
     pub fn empty() -> Value {
         Value{data: ValueData::Empty}
     }
+
+    pub fn new_url(url: &str) -> Value {
+        Value{data: ValueData::Url(url.to_string())}
+    }
 }
 
 impl From<&str> for Value {

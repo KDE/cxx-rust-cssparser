@@ -47,7 +47,11 @@ struct Dimension {
     }
 };
 
-using Value = std::variant<std::nullopt_t, std::string, int, Color, Dimension>;
+struct Url {
+    std::string data;
+};
+
+using Value = std::variant<std::nullopt_t, std::string, int, Color, Dimension, Url>;
 
 using SelectorKind = rust::SelectorKind;
 

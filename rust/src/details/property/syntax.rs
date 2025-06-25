@@ -419,6 +419,12 @@ fn validate_datatype<'a>(datatype: &DataType, values: &'a [Value]) -> Result<&'a
                 }
                 Err(SyntaxValidateError(format!("Expected Integer, got {:?}", value)))
             },
+            DataType::Url => {
+                if let ValueData::Url(_) = &value.data {
+                    return Ok(remain);
+                }
+                Err(SyntaxValidateError(format!("Expected URL, got {:?}", value)))
+            },
             _ => {
                 Err(SyntaxValidateError(format!("Unhandled data type {:?}", datatype)))
             }
