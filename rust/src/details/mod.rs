@@ -18,6 +18,7 @@ pub enum ParseErrorKind {
     InvalidSelectors,
     InvalidPropertySyntax,
     InvalidPropertyValue,
+    UnknownFunction,
     InvalidPropertyDefinition,
     PropertyValueDoesNotMatchSyntax,
     UnsupportedAtRule,
@@ -55,6 +56,18 @@ pub fn parse_error<'i, 't, R>(parser: &cssparser::Parser<'i, 't>, kind: ParseErr
     Err(parser.new_custom_error(ParseError{ kind, message, location: SourceLocation::from_file_location(parser.current_source_url().unwrap_or("").to_string(), parser.current_source_location())}))
 }
 
+pub fn unwrap_parse_error<'i, 't, R>(error: &'t Result<R, cssparser::ParseError<'i, ParseError>>) -> Option<&'t ParseError> {
+    if let Err(parse_error) = error {
+        if let cssparser::ParseErrorKind::Custom(custom_error) = &parse_error.kind {
+            Some(custom_error)
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+
 impl std::error::Error for ParseError {
 }
 
@@ -71,6 +84,7 @@ impl std::fmt::Display for ParseError {
             ParseErrorKind::InvalidSelectors => write!(f, "Invalid Selectors: {}", self.message),
             ParseErrorKind::InvalidPropertySyntax => write!(f, "Invalid property syntax: {}", self.message),
             ParseErrorKind::InvalidPropertyValue => write!(f, "Invalid property value: {}", self.message),
+            ParseErrorKind::UnknownFunction => write!(f, "Unknown function: {}", self.message),
             ParseErrorKind::InvalidPropertyDefinition => write!(f, "Invalid property definition: {}", self.message),
             ParseErrorKind::PropertyValueDoesNotMatchSyntax => write!(f, "Property value does not match syntax: {}", self.message),
             ParseErrorKind::UnsupportedAtRule => write!(f, "Unsupported @-rule: {}", self.message),

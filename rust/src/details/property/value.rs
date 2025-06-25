@@ -113,8 +113,7 @@ fn parse_function<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> Result<Vec<
             }
         })
     } else {
-        println!("Function {} was not found", function_name);
-        parse_error(parser, ParseErrorKind::InvalidPropertyValue, format!("Function {} was not found", function_name))
+        parse_error(parser, ParseErrorKind::UnknownFunction, format!("Unknown function {:?}", function_name))
     }
 }
 
@@ -134,8 +133,13 @@ fn parse_value_component<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> Resu
         }
     }
 
-    if let Ok(values) = parse_function(parser) {
+    let function_result = parse_function(parser);
+    if let Ok(values) = function_result {
         return Ok(values)
+    } else if let Some(parse_error) = unwrap_parse_error(&function_result) {
+        if parse_error.kind == ParseErrorKind::UnknownFunction {
+            return function_result;
+        }
     }
 
     parse_error(parser, ParseErrorKind::InvalidPropertyValue, String::from("Could not parse input"))
