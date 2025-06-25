@@ -77,7 +77,8 @@ pub enum SyntaxComponent {
     Keyword(String),
     SpaceSeparatedList(DataType),
     CommaSeparatedList(DataType),
-    Repeat{data_type: DataType, minimum: usize, maximum: usize}
+    Repeat{data_type: DataType, minimum: usize, maximum: usize},
+    Comma,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -254,6 +255,10 @@ fn repeat(input: &str) -> SyntaxParseResult<&str, SyntaxComponent> {
     make_error(input, String::from("Input is not a valid repeat pattern"))
 }
 
+fn comma(input: &str) -> SyntaxParseResult<&str, SyntaxComponent> {
+    char(',').parse(input).map(|r| (r.0, SyntaxComponent::Comma))
+}
+
 fn component(input: &str) -> SyntaxParseResult<&str, SyntaxComponent> {
     let result = delimited(
         space0,
@@ -263,6 +268,7 @@ fn component(input: &str) -> SyntaxParseResult<&str, SyntaxComponent> {
             comma_separated_list,
             data_type,
             keyword,
+            comma,
         )),
         space0
     ).parse(input);
@@ -487,6 +493,7 @@ fn validate_component<'a>(component: &SyntaxComponent, values: &'a [Value], list
     match component {
         SyntaxComponent::DataType(datatype) => validate_datatype(datatype, values),
         SyntaxComponent::Keyword(keyword) => validate_keyword(keyword, values),
+        SyntaxComponent::Comma => Ok(values),
         SyntaxComponent::SpaceSeparatedList(datatype) => {
             if list_type == &ListType::CommaSeparated {
                 return Err(SyntaxValidateError(format!("Expected space separated list, got comma separated")))
@@ -500,13 +507,13 @@ fn validate_component<'a>(component: &SyntaxComponent, values: &'a [Value], list
             }
 
             validate_list(datatype, values, 0, usize::max_value())
-        }
+        },
         SyntaxComponent::Repeat { data_type, minimum, maximum } => {
             if list_type == &ListType::CommaSeparated {
                 return Err(SyntaxValidateError(format!("Expected space separated list, got comma separated")))
             }
             validate_list(data_type, values, *minimum, *maximum)
-        }
+        },
     }
 }
 
