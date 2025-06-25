@@ -11,6 +11,19 @@ pub struct Color {
     pub a: u8,
 }
 
+impl Color {
+    pub fn mix(first: &Color, second: &Color, amount: f32) -> Color {
+        let clamped_amount = amount.clamp(0.0, 1.0);
+        let first_amount = 1.0 - clamped_amount;
+        Color {
+            r: (first.r as f32 * first_amount + second.r as f32 * clamped_amount) as u8,
+            g: (first.g as f32 * first_amount + second.g as f32 * clamped_amount) as u8,
+            b: (first.b as f32 * first_amount + second.b as f32 * clamped_amount) as u8,
+            a: (first.a as f32 * first_amount + second.a as f32 * clamped_amount) as u8,
+        }
+    }
+}
+
 impl From<(u8, u8, u8)> for Color {
     fn from(value: (u8, u8, u8)) -> Self {
         Self{r: value.0, g: value.1, b: value.2, a: 255}
@@ -26,6 +39,16 @@ impl From<(u8, u8, u8, f32)> for Color {
 impl From<(f32, f32, f32, f32)> for Color {
     fn from(value: (f32, f32, f32, f32)) -> Self {
         Self{r: (value.0 * 255.0) as u8, g: (value.1 * 255.0) as u8, b: (value.2 * 255.0) as u8, a: (value.3 * 255.0) as u8}
+    }
+}
+
+impl From<Value> for Color {
+    fn from(value: Value) -> Self {
+        if let ValueData::Color(color) = value.data {
+            color
+        } else {
+            Color { r: 0, g: 0, b: 0, a: 0 }
+        }
     }
 }
 
@@ -103,6 +126,16 @@ impl Dimension {
         match self.unit {
             Unit::Degrees | Unit::Radians => true,
             _ => false
+        }
+    }
+}
+
+impl From<Value> for Dimension {
+    fn from(value: Value) -> Self {
+        if let ValueData::Dimension(dimension) = value.data {
+            dimension
+        } else {
+            Dimension { value: 0.0, unit: Unit::Unknown }
         }
     }
 }

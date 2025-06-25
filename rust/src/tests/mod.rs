@@ -18,3 +18,4 @@ mod propertysyntax;
 mod propertyvalue;
 mod selectorparser;
 mod selector;
+mod propertyfunction;
