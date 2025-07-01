@@ -5,7 +5,10 @@ use crate::details::{parse_error, ParseError, ParseErrorKind, SourceLocation};
 
 use super::syntax::{parse_syntax, ParsedPropertySyntax};
 use super::value::parse_values;
+use super::function::property_function;
+
 use crate::property::PropertyDefinition;
+use crate::value::ValueData;
 
 struct PropertyDefinitionParser {
     definition: PropertyDefinition,
@@ -31,7 +34,37 @@ impl<'i> cssparser::DeclarationParser<'i> for PropertyDefinitionParser {
         match name.to_lowercase().as_str() {
             "syntax" => {
                 let location = SourceLocation::from_file_location(input.current_source_url().unwrap_or("").to_string(), input.current_source_location());
-                let parsed = parse_syntax(input.expect_string()?.as_ref(), location);
+
+                let token = input.next()?.clone();
+                let syntax = match token {
+                    cssparser::Token::QuotedString(identifier) => {
+                        identifier.to_string()
+                    },
+                    cssparser::Token::Function(function) => {
+                        if function == &"var" {
+                            let var_function = property_function("var").unwrap();
+                            let result = input.parse_nested_block(|parser| var_function(parser));
+                            if let Ok(values) = result {
+                                if values.len() == 1 {
+                                    if let ValueData::String(string) = &values.first().unwrap().data {
+                                        string.clone()
+                                    } else {
+                                        return parse_error(input, ParseErrorKind::InvalidPropertyDefinition, format!("Expected a string value for property syntax, got {:?}", values.first().unwrap()))
+                                    }
+                                } else {
+                                    return parse_error(input, ParseErrorKind::InvalidPropertyDefinition, format!("Expected exactly one value for property syntax, got {:?}", values))
+                                }
+                            } else {
+                                return result.map(|_| ());
+                            }
+                        } else {
+                            return parse_error(input, ParseErrorKind::InvalidPropertyDefinition, format!("Function {} is not supported in property definitions", function))
+                        }
+                    }
+                    _ => String::from("*"),
+                };
+
+                let parsed = parse_syntax(&syntax, location);
                 if let Ok(syntax) = parsed {
                     self.definition.syntax = syntax;
                 } else {
