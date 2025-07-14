@@ -51,7 +51,15 @@ struct Url {
     std::string data;
 };
 
+using AttributeOperator = rust::AttributeOperator;
+
 using Value = std::variant<std::nullopt_t, std::string, int, Color, Dimension, Url>;
+
+struct AttributeMatch {
+    std::string name;
+    AttributeOperator op;
+    Value value;
+};
 
 using SelectorKind = rust::SelectorKind;
 
@@ -69,6 +77,7 @@ struct CSSPARSER_EXPORT SelectorPart {
 
     SelectorKind kind;
     Value value;
+    std::optional<AttributeMatch> attributeMatch;
 };
 
 struct CSSPARSER_EXPORT Selector {

@@ -105,7 +105,17 @@ void StyleSheet::Private::update()
         Selector s;
         const auto &parts = entry.selector().parts();
         for (const auto &part : parts) {
-            s.parts.emplace_back(part.kind(), convert_value(part.value()));
+            if (part.kind() == rust::SelectorKind::Attribute) {
+                auto new_part = SelectorPart{SelectorKind::Attribute, std::nullopt};
+                new_part.attributeMatch = AttributeMatch {
+                    .name = std::string(part.attribute_name()),
+                    .op = part.attribute_operator(),
+                    .value = convert_value(part.attribute_value()),
+                };
+                s.parts.push_back(new_part);
+            } else {
+                s.parts.emplace_back(part.kind(), convert_value(part.value()));
+            }
         }
         rule.selector = s;
 
