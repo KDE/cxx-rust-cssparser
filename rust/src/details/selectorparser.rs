@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-only OR LGPL-3.0-only OR LicenseRef-KDE-Accepted-LGPL
 // SPDX-FileCopyrightText: 2025 Arjen Hiemstra <ahiemstra@heimr.nl>
 
-use crate::selector::{Selector, SelectorPart, SelectorKind};
+use crate::selector::{Selector, SelectorKind, SelectorPart, SelectorValue};
 use crate::value::Value;
 
 use crate::details::ParseError;
@@ -96,13 +96,13 @@ impl SelectorParser {
             let mut selector = Selector::new();
             for part in entry.iter_raw_parse_order_from(0) {
                 match part {
-                    selectors::parser::Component::LocalName(local_name) => selector.push_part(SelectorKind::Type, Value::from(&local_name.name)),
-                    selectors::parser::Component::ID(name) => selector.push_part(SelectorKind::Id, Value::from(name)),
-                    selectors::parser::Component::Class(name) => selector.push_part(SelectorKind::Class, Value::from(name)),
-                    selectors::parser::Component::NonTSPseudoClass(pseudo_class) => selector.push_part(SelectorKind::PseudoClass, Value::from(pseudo_class.0.as_str())),
-                    selectors::parser::Component::ParentSelector => selector.push_part(SelectorKind::RelativeParent, Value::empty()),
-                    selectors::parser::Component::Root => selector.push_part(SelectorKind::DocumentRoot, Value::empty()),
-                    selectors::parser::Component::ExplicitUniversalType => selector.push_part(SelectorKind::AnyElement, Value::empty()),
+                    selectors::parser::Component::LocalName(local_name) => selector.push_with_value(SelectorKind::Type, Value::from(&local_name.name)),
+                    selectors::parser::Component::ID(name) => selector.push_with_value(SelectorKind::Id, Value::from(name)),
+                    selectors::parser::Component::Class(name) => selector.push_with_value(SelectorKind::Class, Value::from(name)),
+                    selectors::parser::Component::NonTSPseudoClass(pseudo_class) => selector.push_with_value(SelectorKind::PseudoClass, Value::from(pseudo_class.0.as_str())),
+                    selectors::parser::Component::ParentSelector => selector.push_with_empty(SelectorKind::RelativeParent),
+                    selectors::parser::Component::Root => selector.push_with_empty(SelectorKind::DocumentRoot),
+                    selectors::parser::Component::ExplicitUniversalType => selector.push_with_empty(SelectorKind::AnyElement),
 
                     selectors::parser::Component::Combinator(combinator) => {
                         match combinator {

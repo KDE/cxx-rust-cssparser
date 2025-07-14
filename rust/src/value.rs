@@ -164,6 +164,10 @@ impl Value {
     pub fn new_url(url: &str) -> Value {
         Value{data: ValueData::Url(url.to_string())}
     }
+
+    pub fn empty_ref() -> &'static Value {
+        &Value{data: ValueData::Empty}
+    }
 }
 
 impl From<&str> for Value {

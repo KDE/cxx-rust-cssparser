@@ -19,18 +19,24 @@ pub enum SelectorKind {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub enum SelectorValue {
+    Empty,
+    Value(Value),
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct SelectorPart {
     pub kind: SelectorKind,
-    pub value: Value,
+    pub value: SelectorValue,
 }
 
 impl SelectorPart {
     pub fn new_with_empty(kind: SelectorKind) -> SelectorPart {
-        SelectorPart { kind, value: Value::empty() }
+        SelectorPart { kind, value: SelectorValue::Empty }
     }
 
     pub fn new_with_value(kind: SelectorKind, value: Value) -> SelectorPart {
-        SelectorPart { kind, value }
+        SelectorPart { kind, value: SelectorValue::Value(value) }
     }
 }
 
@@ -67,7 +73,11 @@ impl Selector {
         Selector { parts }
     }
 
-    pub fn push_part(&mut self, kind: SelectorKind, value: Value) {
+    pub fn push_with_empty(&mut self, kind: SelectorKind) {
+        self.parts.push(SelectorPart::new_with_empty(kind))
+    }
+
+    pub fn push_with_value(&mut self, kind: SelectorKind, value: Value) {
         self.parts.push(SelectorPart::new_with_value(kind, value));
     }
 }

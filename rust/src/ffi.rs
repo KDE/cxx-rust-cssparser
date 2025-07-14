@@ -3,7 +3,7 @@
 
 use ffi::ValueConversionError;
 
-use crate::selector::{Selector, SelectorPart, SelectorKind};
+use crate::selector::{Selector, SelectorPart, SelectorKind, SelectorValue};
 use crate::property::Property;
 use crate::stylerule::StyleRule;
 use crate::stylesheet::StyleSheet;
@@ -254,7 +254,12 @@ impl SelectorPart {
     }
 
     fn value(&self) -> &value::Value {
-        &self.value
+        if let SelectorValue::Value(value) = &self.value {
+            value
+        } else {
+            Value::empty_ref()
+        }
+    }
     }
 }
 
