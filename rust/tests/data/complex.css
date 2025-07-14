@@ -49,4 +49,8 @@ toolbutton {
     &:hovered {
         color: #00ff00;
     }
+
+    &[display="something"] {
+        color: #0000ff;
+    }
 }

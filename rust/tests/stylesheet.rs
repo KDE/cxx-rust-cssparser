@@ -196,7 +196,7 @@ fn complex() {
     assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap().to_string());
 
     let rules = &stylesheet.rules;
-    assert_eq!(rules.len(), 4);
+    assert_eq!(rules.len(), 6);
 
     let expected_selectors = [
         Selector::from_parts(&[
@@ -207,10 +207,32 @@ fn complex() {
             SelectorPart::new_with_value(SelectorKind::Type, Value::from("button")),
         ]),
         Selector::from_parts(&[
+            SelectorPart {
+                kind: SelectorKind::Attribute,
+                value: SelectorValue::Attribute {
+                    name: String::from("display"),
+                             operator: AttributeOperator::Equals,
+                             value: Value::from("something"),
+                }
+            },
+            SelectorPart::new_with_value(SelectorKind::Type, Value::from("button")),
+        ]),
+        Selector::from_parts(&[
             SelectorPart::new_with_value(SelectorKind::Type, Value::from("toolbutton")),
         ]),
         Selector::from_parts(&[
             SelectorPart::new_with_value(SelectorKind::PseudoClass, Value::from("hovered")),
+            SelectorPart::new_with_value(SelectorKind::Type, Value::from("toolbutton")),
+        ]),
+        Selector::from_parts(&[
+            SelectorPart {
+                kind: SelectorKind::Attribute,
+                value: SelectorValue::Attribute {
+                    name: String::from("display"),
+                    operator: AttributeOperator::Equals,
+                    value: Value::from("something"),
+                }
+            },
             SelectorPart::new_with_value(SelectorKind::Type, Value::from("toolbutton")),
         ]),
     ];

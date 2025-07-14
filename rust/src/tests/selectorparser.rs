@@ -115,5 +115,50 @@ test_cases! {
             Selector::from_parts(&[
                 SelectorPart::new_with_empty(SelectorKind::AnyElement),
             ])
+        ];
+
+    attribute_exists:
+        check_selector_toplevel "type[test]", vec![
+            Selector::from_parts(&[
+                SelectorPart {
+                    kind: SelectorKind::Attribute,
+                    value: SelectorValue::Attribute {
+                        name: String::from("test"),
+                        operator: AttributeOperator::Exists,
+                        value: Value::empty(),
+                    }
+                },
+                SelectorPart::new_with_value(SelectorKind::Type, Value::from("type")),
+            ]),
+        ];
+
+    attribute_equal:
+        check_selector_toplevel ".class[test=\"test\"]", vec![
+            Selector::from_parts(&[
+                SelectorPart {
+                    kind: SelectorKind::Attribute,
+                    value: SelectorValue::Attribute {
+                        name: String::from("test"),
+                        operator: AttributeOperator::Equals,
+                        value: Value::from("test"),
+                    }
+                },
+                SelectorPart::new_with_value(SelectorKind::Class, Value::from("class")),
+            ])
+        ];
+
+    attribute_nested_substring:
+        check_selector_nested "&[test*=\"test\"]", vec![
+            Selector::from_parts(&[
+                SelectorPart {
+                    kind: SelectorKind::Attribute,
+                    value: SelectorValue::Attribute {
+                        name: String::from("test"),
+                        operator: AttributeOperator::Substring,
+                        value: Value::from("test"),
+                    }
+                },
+                SelectorPart::new_with_empty(SelectorKind::RelativeParent),
+            ])
         ]
 }

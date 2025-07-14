@@ -39,6 +39,17 @@ mod ffi {
         Integer,
     }
 
+    pub enum AttributeOperator {
+        None,
+        Exists,
+        Equals,
+        Includes,
+        Prefixed,
+        Suffixed,
+        Substring,
+        DashMatch,
+    }
+
     #[derive(Debug)]
     pub enum SelectorKind {
         Unknown,
@@ -95,6 +106,9 @@ mod ffi {
         type SelectorPart;
         fn kind(self: &SelectorPart) -> SelectorKind;
         fn value(self: &SelectorPart) -> &Value;
+        fn attribute_name(self: &SelectorPart) -> String;
+        fn attribute_operator(self: &SelectorPart) -> AttributeOperator;
+        fn attribute_value(self: &SelectorPart) -> &Value;
 
         type Selector;
         fn parts(self: &Selector) -> Vec<SelectorPart>;
@@ -155,6 +169,17 @@ convert_enum!(value::Unit, ffi::Unit, {
     value::Unit::Radians => Radians,
     value::Unit::Seconds => Seconds,
     value::Unit::Milliseconds => Milliseconds,
+});
+
+convert_enum!(crate::selector::AttributeOperator, ffi::AttributeOperator, {
+    crate::selector::AttributeOperator::None => None,
+    crate::selector::AttributeOperator::Exists => Exists,
+    crate::selector::AttributeOperator::Equals => Equals,
+    crate::selector::AttributeOperator::Includes => Includes,
+    crate::selector::AttributeOperator::Prefixed => Prefixed,
+    crate::selector::AttributeOperator::Suffixed => Suffixed,
+    crate::selector::AttributeOperator::Substring => Substring,
+    crate::selector::AttributeOperator::DashMatch => DashMatch,
 });
 
 convert_enum!(SelectorKind, ffi::SelectorKind, {
@@ -260,6 +285,29 @@ impl SelectorPart {
             Value::empty_ref()
         }
     }
+
+    fn attribute_name(&self) -> String {
+        if let SelectorValue::Attribute { name, operator: _, value: _ } = &self.value {
+            name.clone()
+        } else {
+            String::new()
+        }
+    }
+
+    fn attribute_operator(&self) -> ffi::AttributeOperator {
+        if let SelectorValue::Attribute { name: _, operator, value: _ } = self.value {
+            ffi::AttributeOperator::from(operator)
+        } else {
+            ffi::AttributeOperator::None
+        }
+    }
+
+    fn attribute_value(&self) -> &Value {
+        if let SelectorValue::Attribute { name: _, operator: _, value } = &self.value {
+            value
+        } else {
+            Value::empty_ref()
+        }
     }
 }
 

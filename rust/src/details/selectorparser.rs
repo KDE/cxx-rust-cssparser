@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-only OR LGPL-3.0-only OR LicenseRef-KDE-Accepted-LGPL
 // SPDX-FileCopyrightText: 2025 Arjen Hiemstra <ahiemstra@heimr.nl>
 
-use crate::selector::{Selector, SelectorKind, SelectorPart, SelectorValue};
+use crate::selector::{AttributeOperator, Selector, SelectorKind, SelectorPart, SelectorValue};
 use crate::value::Value;
 
 use crate::details::ParseError;
@@ -103,6 +103,36 @@ impl SelectorParser {
                     selectors::parser::Component::ParentSelector => selector.push_with_empty(SelectorKind::RelativeParent),
                     selectors::parser::Component::Root => selector.push_with_empty(SelectorKind::DocumentRoot),
                     selectors::parser::Component::ExplicitUniversalType => selector.push_with_empty(SelectorKind::AnyElement),
+
+                    selectors::parser::Component::AttributeInNoNamespaceExists { local_name, local_name_lower: _ } => {
+                        selector.parts.push(SelectorPart {
+                            kind: SelectorKind::Attribute,
+                            value: SelectorValue::Attribute {
+                                name: local_name.to_string(),
+                                operator: AttributeOperator::Exists,
+                                value: Value::empty(),
+                            }
+                        })
+                    }
+
+                    selectors::parser::Component::AttributeInNoNamespace { local_name, operator, value, case_sensitivity: _ } => {
+                        let attribute_operator = match operator {
+                            selectors::attr::AttrSelectorOperator::Equal => AttributeOperator::Equals,
+                            selectors::attr::AttrSelectorOperator::Includes => AttributeOperator::Includes,
+                            selectors::attr::AttrSelectorOperator::Prefix => AttributeOperator::Prefixed,
+                            selectors::attr::AttrSelectorOperator::Suffix => AttributeOperator::Suffixed,
+                            selectors::attr::AttrSelectorOperator::Substring => AttributeOperator::Substring,
+                            selectors::attr::AttrSelectorOperator::DashMatch => AttributeOperator::DashMatch,
+                        };
+                        selector.parts.push(SelectorPart {
+                            kind: SelectorKind::Attribute,
+                            value: SelectorValue::Attribute {
+                                name: local_name.to_string(),
+                                operator: attribute_operator,
+                                value: Value::from(value),
+                            }
+                        });
+                    },
 
                     selectors::parser::Component::Combinator(combinator) => {
                         match combinator {

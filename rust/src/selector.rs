@@ -4,6 +4,18 @@
 use crate::value::Value;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+pub enum AttributeOperator {
+    None,
+    Exists,
+    Equals,
+    Includes,
+    Prefixed,
+    Suffixed,
+    Substring,
+    DashMatch,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SelectorKind {
     Unknown,
     AnyElement,
@@ -22,6 +34,7 @@ pub enum SelectorKind {
 pub enum SelectorValue {
     Empty,
     Value(Value),
+    Attribute{name: String, operator: AttributeOperator, value: Value},
 }
 
 #[derive(Debug, Clone, PartialEq)]
