@@ -87,20 +87,6 @@ impl StyleSheet {
         self.rules.extend(rules);
         self.errors.extend(errors);
 
-        if self.errors.is_empty() {
-            Ok(())
-        } else {
-            let mut message;
-            if self.errors.len() == 1 {
-                message = self.errors.first().unwrap().message.clone();
-            } else {
-                message = String::from("Multiple errors:\n");
-                for error in &self.errors {
-                    message.push_str(format!("{}\n", error).as_str());
-                }
-            }
-
-            Err(ParseError { kind: ParseErrorKind::StyleSheetParseError, message, location: SourceLocation { file: origin.to_string(), line: 0, column: 0 } })
-        }
+        Ok(())
     }
 }
