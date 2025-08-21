@@ -7,7 +7,7 @@ use std::collections::hash_map::HashMap;
 use crate::property::property_definition;
 use crate::value::{Value, Color, Dimension};
 
-use crate::details::{ParseError, SourceLocation};
+use crate::details::{parse_error, ParseError, ParseErrorKind, SourceLocation};
 
 use super::syntax::{ParsedPropertySyntax, parse_syntax};
 use super::value::parse_values;
@@ -55,6 +55,10 @@ fn var<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> PropertyFunctionResult
     let property_definition = property_definition(var_name.as_str());
     if let Some(definition) = property_definition {
         return Ok(definition.initial.clone());
+    }
+
+    if parser.is_exhausted() {
+        return parse_error(parser, ParseErrorKind::UnknownProperty, format!("No custom property {} was defined", var_name));
     }
 
     parser.expect_comma()?;
