@@ -205,6 +205,14 @@ impl Value {
     pub fn empty_ref() -> &'static Value {
         &Value{data: ValueData::Empty}
     }
+
+    pub fn to_string(&self) -> String {
+        if let ValueData::String(string) = &self.data {
+            string.clone()
+        } else {
+            String::new()
+        }
+    }
 }
 
 impl From<&str> for Value {

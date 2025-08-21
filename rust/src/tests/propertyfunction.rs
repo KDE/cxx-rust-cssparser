@@ -31,8 +31,14 @@ test_cases! {
         check_value "mix(black, white, 0.5)", vec![
             Value::from(Color::mix(&Color::rgba(0, 0, 0, 255), &Color::rgba(255, 255, 255, 255), 0.5))
         ];
+
     mix_alpha:
         check_value "mix(rgba(255, 0, 255, 0.25), rgba(255, 255, 0, 0.75), 0.25)", vec![
             Value::from(Color::mix(&Color::rgba(255, 0, 255, 63), &Color::rgba(255, 255, 0, 191), 0.25))
+        ];
+
+    custom_color:
+        check_value "custom-color('test', 'some', 'arguments')", vec![
+            Value::from(Color::custom(String::from("test"), vec![String::from("some"), String::from("arguments")]))
         ];
 }

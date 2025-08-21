@@ -55,6 +55,8 @@ mod ffi {
         amount: f32,
     }
 
+    pub enum ValueType {
+        Empty,
         Dimension,
         String,
         Color,
@@ -119,7 +121,7 @@ mod ffi {
         type Value;
         fn value_type(self: &Value) -> ValueType;
         fn to_dimension(self: &Value) -> Result<Dimension>;
-        fn to_string(self: &Value) -> Result<&str>;
+        fn to_string(self: &Value) -> String;
         fn to_color(self: &Value) -> Result<Box<Color>>;
         fn to_image(self: &Value) -> Result<&str>;
         fn to_url(self: &Value) -> Result<&str>;
@@ -234,8 +236,6 @@ impl From<&value::Dimension> for ffi::Dimension {
     }
 }
 
-
-
 impl ffi::Dimension {
     fn to_string(&self) -> String {
         format!("{}{:?}", self.value, self.unit)
@@ -291,14 +291,6 @@ impl value::Value {
             Ok(dimension.into())
         } else {
             Err(ValueConversionError{ message: String::from("Not a length value") })
-        }
-    }
-
-    fn to_string(&self) -> Result<&str, ffi::ValueConversionError> {
-        if let value::ValueData::String(string) = &self.data {
-            Ok(string.as_str())
-        } else {
-            Err(ValueConversionError{ message: String::from("Not a string value") })
         }
     }
 
