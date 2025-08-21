@@ -18,7 +18,49 @@
 namespace cssparser
 {
 
-using Color = rust::Color;
+using ColorType = rust::ColorType;
+struct Color;
+
+struct MixedColor {
+    std::shared_ptr<Color> first;
+    std::shared_ptr<Color> second;
+    float amount;
+};
+
+struct Color {
+    ColorType type;
+    std::variant<std::nullopt_t, rust::Rgba, rust::CustomColor, MixedColor> data = std::nullopt;
+
+    inline std::string to_string() const {
+        switch (type) {
+        case ColorType::Empty:
+            return "Empty";
+        case ColorType::Rgba: {
+            auto rgba = std::get<rust::Rgba>(data);
+            return std::format("RGBA({}, {}, {}, {})", rgba.r, rgba.g, rgba.b, rgba.a);
+        }
+        case ColorType::Custom: {
+            auto custom = std::get<rust::CustomColor>(data);
+            auto args = std::string{};
+
+            for (auto arg : custom.arguments) {
+                if (!args.empty()) {
+                    args += ", ";
+                }
+                args += std::string(arg);
+            }
+
+            return std::format("CustomColor(source: {}, arguments: {})", std::string(custom.source), args);
+        }
+        case ColorType::Mix: {
+            auto mix = std::get<MixedColor>(data);
+            return std::format("MixColor(first: {}, second: {}, amount: {:.1f})", mix.first->to_string(), mix.second->to_string(), mix.amount);
+        }
+        }
+        return std::string();
+    }
+};
+
 using Unit = rust::Unit;
 
 struct Dimension {
