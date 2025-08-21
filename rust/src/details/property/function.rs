@@ -21,6 +21,7 @@ fn property_functions() -> &'static RwLock<HashMap<String, PropertyFunction>> {
         let mut map: HashMap<String, PropertyFunction> = HashMap::new();
         map.insert(String::from("var"), var);
         map.insert(String::from("mix"), mix);
+        map.insert(String::from("custom-color"), custom_color);
         RwLock::new(map)
     })
 }
@@ -76,4 +77,19 @@ fn mix<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> PropertyFunctionResult
     let mixed = Color::mix(&first_color, &second_color, amount.value);
 
     Ok(vec![Value::from(mixed)])
+}
+
+// Parse `custom-color(<string>, <string>#)`
+fn custom_color<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> PropertyFunctionResult<'i> {
+    let syntax = parse_syntax("<string>, <string>#", SourceLocation::from_file("inline"));
+    if let Err(error) = syntax {
+        return Err(parser.new_custom_error(error));
+    }
+
+    let values = parse_values(syntax.as_ref().unwrap(), parser)?;
+    let (source, args) = values.split_first().unwrap();
+
+    let string_args = args.iter().map(|v| v.to_string()).collect();
+
+    Ok(vec![Value::from(Color::custom(source.to_string(), string_args))])
 }
