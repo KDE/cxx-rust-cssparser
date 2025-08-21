@@ -10,6 +10,7 @@ use crate::stylesheet::StyleSheet;
 use crate::value;
 
 use crate::value::Value;
+use crate::value::Color;
 
 #[cxx::bridge(namespace = "cssparser::rust")]
 mod ffi {
@@ -29,8 +30,31 @@ mod ffi {
         Milliseconds,
     }
 
-    pub enum ValueType {
+    pub enum ColorType {
         Empty,
+        Rgba,
+        Custom,
+        Mix,
+    }
+
+    pub struct Rgba {
+        r: u8,
+        g: u8,
+        b: u8,
+        a: u8,
+    }
+
+    pub struct CustomColor {
+        source: String,
+        arguments: Vec<String>,
+    }
+
+    pub struct MixedColor {
+        first: Box<Color>,
+        second: Box<Color>,
+        amount: f32,
+    }
+
         Dimension,
         String,
         Color,
@@ -66,14 +90,6 @@ mod ffi {
     }
 
     #[derive(Debug, Clone, Copy)]
-    pub struct Color {
-        r: u8,
-        g: u8,
-        b: u8,
-        a: u8,
-    }
-
-    #[derive(Debug, Clone, Copy)]
     pub struct Dimension {
         value: f32,
         unit: Unit,
@@ -91,14 +107,20 @@ mod ffi {
     }
 
     extern "Rust" {
-        fn to_string(self: &Color) -> String;
         fn to_string(self: &Dimension) -> String;
+
+        type Color;
+        fn color_type(self: &Color) -> ColorType;
+        fn to_string(self: &Color) -> String;
+        fn to_rgba(self: &Color) -> Result<Rgba>;
+        fn to_custom(self: &Color) -> Result<CustomColor>;
+        fn to_mix(self: &Color) -> Result<MixedColor>;
 
         type Value;
         fn value_type(self: &Value) -> ValueType;
         fn to_dimension(self: &Value) -> Result<Dimension>;
         fn to_string(self: &Value) -> Result<&str>;
-        fn to_color(self: &Value) -> Result<Color>;
+        fn to_color(self: &Value) -> Result<Box<Color>>;
         fn to_image(self: &Value) -> Result<&str>;
         fn to_url(self: &Value) -> Result<&str>;
         fn to_integer(self: &Value) -> Result<i32>;
@@ -145,6 +167,13 @@ macro_rules! convert_enum {
         }
     };
 }
+
+convert_enum!(value::ColorData, ffi::ColorType, {
+    value::ColorData::Empty => Empty,
+    value::ColorData::Rgba{ r: _, g: _, b: _, a: _ } => Rgba,
+    value::ColorData::Custom{ source: _, arguments: _ } => Custom,
+    value::ColorData::Mix{ first: _, second: _, amount: _ } => Mix,
+});
 
 convert_enum!(value::ValueData, ffi::ValueType, {
     value::ValueData::Empty => Empty,
@@ -205,21 +234,50 @@ impl From<&value::Dimension> for ffi::Dimension {
     }
 }
 
-impl From<&value::Color> for ffi::Color {
-    fn from(value: &value::Color) -> Self {
-        ffi::Color { r: value.r, g: value.g, b: value.b, a: value.a }
-    }
-}
 
-impl ffi::Color {
-    fn to_string(&self) -> String {
-        format!("#{:02x}{:02x}{:02x}{:02x}", self.r, self.g, self.b, self.a)
-    }
-}
 
 impl ffi::Dimension {
     fn to_string(&self) -> String {
         format!("{}{:?}", self.value, self.unit)
+    }
+}
+
+impl value::Color {
+    fn color_type(&self) -> ffi::ColorType {
+        self.data.clone().into()
+    }
+
+    fn to_string(&self) -> String {
+        match &self.data {
+            value::ColorData::Empty => format!("Empty"),
+            value::ColorData::Rgba{r, g, b, a} => format!("RGBA({}, {}, {}, {})", r, g, b, a),
+            value::ColorData::Custom{source, arguments} => format!("Custom({}, {:?})", source, arguments),
+            value::ColorData::Mix{first, second, amount} => format!("Mix({}, {}, {})", first.to_string(), second.to_string(), amount),
+        }
+    }
+
+    fn to_rgba(&self) -> Result<ffi::Rgba, ffi::ValueConversionError> {
+        if let value::ColorData::Rgba{r ,g , b, a} = &self.data {
+            Ok(ffi::Rgba{r: *r, g: *g, b: *b, a: *a})
+        } else {
+            Err(ValueConversionError{ message: String::from("Not an RGBA color") })
+        }
+    }
+
+    fn to_custom(&self) -> Result<ffi::CustomColor, ffi::ValueConversionError> {
+        if let value::ColorData::Custom{source, arguments} = &self.data {
+            Ok(ffi::CustomColor{source: source.clone(), arguments: arguments.clone()})
+        } else {
+            Err(ValueConversionError{ message: String::from("Not an RGBA color") })
+        }
+    }
+
+    fn to_mix(&self) -> Result<ffi::MixedColor, ffi::ValueConversionError> {
+        if let value::ColorData::Mix{first, second, amount} = &self.data {
+            Ok(ffi::MixedColor{first: first.clone(), second: second.clone(), amount: *amount})
+        } else {
+            Err(ValueConversionError{ message: String::from("Not an RGBA color") })
+        }
     }
 }
 
@@ -244,9 +302,9 @@ impl value::Value {
         }
     }
 
-    fn to_color(&self) -> Result<ffi::Color, ffi::ValueConversionError> {
+    fn to_color(&self) -> Result<Box<Color>, ffi::ValueConversionError> {
         if let value::ValueData::Color(color) = &self.data {
-            Ok(color.into())
+            Ok(Box::new(color.clone()))
         } else {
             Err(ffi::ValueConversionError{ message: String::from("Not a color value") })
         }

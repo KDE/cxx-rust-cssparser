@@ -4,41 +4,78 @@
 use crate::details::identifier::Identifier;
 
 #[derive(Debug, Default, Clone, PartialEq)]
+pub(crate) enum ColorData {
+    #[default] Empty,
+    Rgba { r: u8, g: u8, b: u8, a: u8 },
+    Custom { source: String, arguments: Vec<String> },
+    Mix { first: Box<Color>, second: Box<Color>, amount: f32 },
+}
+
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Color {
-    pub r: u8,
-    pub g: u8,
-    pub b: u8,
-    pub a: u8,
+    pub(crate) data: ColorData,
 }
 
 impl Color {
+    pub fn empty() -> Color {
+        Color { data: ColorData::Empty }
+    }
+
+    pub fn rgba(r: u8, g: u8, b: u8, a: u8 ) -> Color {
+        Color { data: ColorData::Rgba { r, g, b, a } }
+    }
+
+    pub fn custom(source: String, arguments: Vec<String>) -> Color {
+        Color { data: ColorData::Custom {source, arguments} }
+    }
+
     pub fn mix(first: &Color, second: &Color, amount: f32) -> Color {
-        let clamped_amount = amount.clamp(0.0, 1.0);
-        let first_amount = 1.0 - clamped_amount;
         Color {
-            r: (first.r as f32 * first_amount + second.r as f32 * clamped_amount) as u8,
-            g: (first.g as f32 * first_amount + second.g as f32 * clamped_amount) as u8,
-            b: (first.b as f32 * first_amount + second.b as f32 * clamped_amount) as u8,
-            a: (first.a as f32 * first_amount + second.a as f32 * clamped_amount) as u8,
+            data: ColorData::Mix {
+                first: Box::new(first.clone()),
+                second: Box::new(second.clone()),
+                amount
+            }
         }
     }
 }
 
 impl From<(u8, u8, u8)> for Color {
     fn from(value: (u8, u8, u8)) -> Self {
-        Self{r: value.0, g: value.1, b: value.2, a: 255}
+        Self {
+            data: ColorData::Rgba {
+                r: value.0,
+                g: value.1,
+                b: value.2,
+                a: 255
+            }
+        }
     }
 }
 
 impl From<(u8, u8, u8, f32)> for Color {
     fn from(value: (u8, u8, u8, f32)) -> Self {
-        Self{r: value.0, g: value.1, b: value.2, a: (value.3 * 255.0) as u8}
+        Self {
+            data: ColorData::Rgba {
+                r: value.0,
+                g: value.1,
+                b: value.2,
+                a: (value.3 * 255.0) as u8
+            }
+        }
     }
 }
 
 impl From<(f32, f32, f32, f32)> for Color {
     fn from(value: (f32, f32, f32, f32)) -> Self {
-        Self{r: (value.0 * 255.0) as u8, g: (value.1 * 255.0) as u8, b: (value.2 * 255.0) as u8, a: (value.3 * 255.0) as u8}
+        Self {
+            data: ColorData::Rgba {
+                r: (value.0 * 255.0) as u8,
+                g: (value.1 * 255.0) as u8,
+                b: (value.2 * 255.0) as u8,
+                a: (value.3 * 255.0) as u8,
+            }
+        }
     }
 }
 
@@ -47,7 +84,7 @@ impl From<Value> for Color {
         if let ValueData::Color(color) = value.data {
             color
         } else {
-            Color { r: 0, g: 0, b: 0, a: 0 }
+            Color::empty()
         }
     }
 }
@@ -174,12 +211,12 @@ impl From<&str> for Value {
     fn from(value: &str) -> Self {
         let named_color = cssparser::color::parse_named_color(value);
         if let Ok(color) = named_color {
-            return Value{data: ValueData::Color(Color{r: color.0, g: color.1, b: color.2, a: 255})};
+            return Value{data: ValueData::Color( Color{ data: ColorData::Rgba{r: color.0, g: color.1, b: color.2, a: 255} })};
         }
 
         let hashed_color = cssparser::color::parse_hash_color(value.as_bytes());
         if let Ok(color) = hashed_color {
-            return Value{data: ValueData::Color(Color{r: color.0, g: color.1, b: color.2, a: cssparser::color::clamp_unit_f32(color.3)})};
+            return Value{data: ValueData::Color(Color{data: ColorData::Rgba{r: color.0, g: color.1, b: color.2, a: cssparser::color::clamp_unit_f32(color.3)}})};
         }
 
         Value{data: ValueData::String(value.to_string())}
