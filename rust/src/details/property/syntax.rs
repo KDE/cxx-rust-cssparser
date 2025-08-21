@@ -71,6 +71,26 @@ pub enum DataType {
     CustomIdent,
 }
 
+impl std::fmt::Display for DataType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Length => write!(f, "length"),
+            Self::Number => write!(f, "number"),
+            Self::Percentage => write!(f, "percentage"),
+            Self::LengthPercentage => write!(f, "length-percentage"),
+            Self::String => write!(f, "string"),
+            Self::Color => write!(f, "color"),
+            Self::Url => write!(f, "url"),
+            Self::Integer => write!(f, "integer"),
+            Self::Angle => write!(f, "angle"),
+            Self::Time => write!(f, "time"),
+            Self::Resolution => write!(f, "resolution"),
+            Self::TransformFunction => write!(f, "transform-function"),
+            Self::CustomIdent => write!(f, "custom-ident"),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum SyntaxComponent {
     DataType(DataType),
@@ -81,10 +101,32 @@ pub enum SyntaxComponent {
     Comma,
 }
 
+impl std::fmt::Display for SyntaxComponent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DataType(data_type) => write!(f, "<{}>", data_type),
+            Self::Keyword(keyword) => write!(f, "{}", keyword),
+            Self::SpaceSeparatedList(data_type) => write!(f, "<{}>+", data_type),
+            Self::CommaSeparatedList(data_type) => write!(f, "<{}>#", data_type),
+            Self::Repeat { data_type, minimum, maximum } => write!(f, "<{}>{{{}, {}}}", data_type, minimum, maximum),
+            Self::Comma => write!(f, ",")
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum SyntaxGroup {
     Component(SyntaxComponent),
     Expression(Vec<SyntaxAlternatives>),
+}
+
+impl std::fmt::Display for SyntaxGroup {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Component(component) => write!(f, "{}", component),
+            Self::Expression(expression) => write!(f, "({})", expression_to_string(expression, " ")),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -94,11 +136,27 @@ pub enum SyntaxAlternatives {
     Alternatives(Vec<SyntaxGroup>),
 }
 
+impl std::fmt::Display for SyntaxAlternatives {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Component(component) => write!(f, "{}", component),
+            Self::Group(group) => write!(f, "{}", group),
+            Self::Alternatives(alternatives) => write!(f, "{}", expression_to_string(alternatives, " | ")),
+        }
+    }
+}
+
 #[derive(Debug, Default, PartialEq, Clone)]
 pub enum ParsedPropertySyntax {
     #[default] Empty,
     Universal,
     Expression(Vec<SyntaxAlternatives>),
+}
+
+
+fn expression_to_string<T>(expression: &[T], separator: &str) -> String
+    where T: std::fmt::Display {
+    expression.iter().map(|a| { format!("{}", a)}).collect::<Vec<String>>().join(separator).to_string()
 }
 
 /*
@@ -564,7 +622,7 @@ fn validate_expression<'a>(expression: &[SyntaxAlternatives], values: &'a [Value
     if remaining_expression.is_empty() {
         Ok(remaining_values)
     } else {
-        Err(SyntaxValidateError(format!("Expected additional values")))
+        Err(SyntaxValidateError(format!("Unexpected end of input, expected: {}", expression_to_string(remaining_expression, " "))))
     }
 }
 
