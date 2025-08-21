@@ -13,6 +13,41 @@ using namespace std::string_literals;
 namespace cssparser
 {
 
+Color convert_color(const ::rust::Box<rust::Color> &color)
+{
+    Color result;
+    result.type = color->color_type();
+    switch (color->color_type()) {
+    case rust::ColorType::Empty:
+        break;
+    case rust::ColorType::Rgba:
+        result.data = color->to_rgba();
+        break;
+    case rust::ColorType::Custom:
+        result.data = color->to_custom();
+        break;
+    case rust::ColorType::Mix: {
+        auto mix = color->to_mix();
+
+        auto first = std::make_shared<Color>();
+        auto second = std::make_shared<Color>();
+
+        *first = convert_color(mix.first);
+        *second = convert_color(mix.second);
+
+        result.data = MixedColor {
+            .first = first,
+            .second = second,
+            .amount = mix.amount
+        };
+
+        break;
+    }
+    }
+
+    return result;
+}
+
 Value convert_value(const rust::Value &input)
 {
     switch (input.value_type()) {
@@ -25,7 +60,8 @@ Value convert_value(const rust::Value &input)
         case rust::ValueType::String:
             return Value(std::string(input.to_string()));
         case rust::ValueType::Color: {
-            return Value(input.to_color());
+            return Value(convert_color(input.to_color()));
+        }
         case rust::ValueType::Integer: {
             return Value(input.to_integer());
         }
@@ -34,7 +70,6 @@ Value convert_value(const rust::Value &input)
         }
         default:
             break;
-        }
     }
 
     return Value(std::nullopt);
