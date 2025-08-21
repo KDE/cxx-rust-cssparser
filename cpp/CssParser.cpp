@@ -110,7 +110,19 @@ void StyleSheet::set_root_path(const std::filesystem::path &path)
 
 void StyleSheet::parse_file(const std::string &file)
 {
-    d->stylesheet->parse_file(file);
+    try {
+        d->stylesheet->parse_file(file);
+    } catch (const std::exception &e) {
+        d->errors.push_back(Error {
+            .file = file,
+            .line = 0,
+            .column = 0,
+            .message = e.what(),
+        });
+
+        return;
+    }
+
     d->update();
 }
 
