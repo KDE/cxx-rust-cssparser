@@ -41,25 +41,25 @@ test_cases! {
         ];
     color_hex:
         check_value ("<color>", "#ff0000"), vec![
-            Value::from(Color{r: 255, g: 0, b: 0, a: 255})
+            Value::from(Color::rgba(255, 0, 0, 255))
         ];
     color_hex_short:
         check_value ("<color>", "#0f0"), vec![
-            Value::from(Color{r: 0, g: 255, b: 0, a: 255})
+            Value::from(Color::rgba(0, 255, 0, 255))
         ];
     color_named:
         check_value ("<color>", "blue"), vec![
-            Value::from(Color{r: 0, g: 0, b: 255, a: 255})
+            Value::from(Color::rgba(0, 0, 255, 255))
         ];
     color_comma_list:
         check_value ("<color>#", "red, green, blue"), vec![
-            Value::from(Color{r: 255, g: 0, b: 0, a: 255}),
-            Value::from(Color{r: 0, g: 128, b: 0, a: 255}),
-            Value::from(Color{r: 0, g: 0, b: 255, a: 255}),
+            Value::from(Color::rgba(255, 0, 0, 255)),
+            Value::from(Color::rgba(0, 128, 0, 255)),
+            Value::from(Color::rgba(0, 0, 255, 255)),
         ];
     universal:
         check_value ("*", "#ff0000"), vec![
-            Value::from(Color{r: 255, g: 0, b: 0, a: 255})
+            Value::from(Color::rgba(255, 0, 0, 255))
         ];
     alternative_keyword:
         check_value ("auto | <length>", "auto"), vec![

@@ -58,7 +58,7 @@ fn property_registration() {
                         name: String::from("test"),
                         definition: property_definition.clone(),
                         values: Vec::from([
-                            Value::from(Color {r: 255, g: 0, b: 0, a: 255})
+                            Value::from(Color::rgba(255, 0, 0, 255))
                         ])
                     }
                 ],
@@ -85,7 +85,7 @@ fn custom_properties() {
     assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap().to_string());
 
     let color_definition = property_definition("--test-color").unwrap();
-    assert_eq!(*color_definition, PropertyDefinition::from_name_syntax_initial("--test-color", "*", &[Value::from(Color{r: 255, g: 0, b: 0, a: 255})], "Test Input", 0, 0).unwrap());
+    assert_eq!(*color_definition, PropertyDefinition::from_name_syntax_initial("--test-color", "*", &[Value::from(Color::rgba(255, 0, 0, 255))], "Test Input", 0, 0).unwrap());
 
     let length_definition = property_definition("--test-length").unwrap();
     assert_eq!(*length_definition, PropertyDefinition::from_name_syntax_initial("--test-length", "*", &[Value::from(Dimension{value: 24.0, unit: Unit::Px})], "Test Input", 0, 0).unwrap());
@@ -108,7 +108,7 @@ fn custom_properties() {
                         name: String::from("test"),
                         definition: property_definition("test").unwrap().clone(),
                         values: vec![
-                            Value::from(Color { r: 255, g: 0, b: 0, a: 255})
+                            Value::from(Color::rgba(255, 0, 0, 255))
                         ]
                     }
                 ]
@@ -144,7 +144,7 @@ fn nested_block() {
                     name: String::from("test"),
                     definition: property_definition.clone(),
                     values: Vec::from([
-                        Value::from(Color {r: 255, g: 0, b: 0, a: 255})
+                        Value::from(Color::rgba(255, 0, 0, 255))
                     ]),
                 }
             ]),
@@ -160,7 +160,7 @@ fn nested_block() {
                     name: String::from("test"),
                     definition: property_definition.clone(),
                     values: Vec::from([
-                        Value::from(Color {r: 0, g: 0, b: 255, a: 255})
+                        Value::from(Color::rgba(0, 0, 255, 255))
                     ]),
                 }
             ]),
@@ -254,7 +254,7 @@ fn complex() {
         Property {
             name: String::from("color"),
             definition: property_definition("color").unwrap(),
-            values: vec![Value::from(Color{r: 255, g: 0, b: 0, a: 255})]
+            values: vec![Value::from(Color::rgba(255, 0, 0, 255))]
         },
         Property {
             name: String::from("padding"),
