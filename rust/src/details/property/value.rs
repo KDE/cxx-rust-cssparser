@@ -136,10 +136,8 @@ fn parse_value_component<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> Resu
     let function_result = parse_function(parser);
     if let Ok(values) = function_result {
         return Ok(values)
-    } else if let Some(parse_error) = unwrap_parse_error(&function_result) {
-        if parse_error.kind == ParseErrorKind::UnknownFunction {
-            return function_result;
-        }
+    } else if let Some(_) = unwrap_parse_error(&function_result) {
+        return function_result;
     }
 
     parse_error(parser, ParseErrorKind::InvalidPropertyValue, String::from("Could not parse input"))
