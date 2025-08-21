@@ -53,6 +53,21 @@ std::string value_to_string(const Value &value)
     }, value);
 }
 
+std::string selector_part_to_string(const SelectorPart &part)
+{
+    auto kind = kind_to_string(part.kind);
+    switch (part.kind) {
+        case SelectorKind::Unknown:
+        case SelectorKind::AnyElement:
+        case SelectorKind::DocumentRoot:
+        case SelectorKind::DescendantCombinator:
+        case SelectorKind::ChildCombinator:
+            return kind;
+        default:
+            return kind + ": " + value_to_string(part.value);
+    }
+}
+
 int main(int argc, char **argv)
 {
     std::vector<std::filesystem::path> prepend_files;
@@ -140,24 +155,27 @@ int main(int argc, char **argv)
     std::cout << result.size() << " results:" << std::endl;
 
     for (auto entry : result) {
-        std::cout << "Selector(" << std::endl;
+        std::cout << "StyleRule {\n";
+        std::cout << "  selector:\n";
         for (auto part : entry.selector.parts) {
-            std::cout << "  Part(" << kind_to_string(part.kind) << ", " << value_to_string(part.value) << ")" <<    std::endl;
+            std::cout << "    " << selector_part_to_string(part) << "\n";
         }
-        std::cout << ")" << std::endl;
+        std::cout << "\n";
 
         for (auto property : entry.properties) {
-            std::cout << "Property(" << std::endl;
-            std::cout << "  name: " << property.name << std::endl;
+            // std::cout << "  Property(";
             if (property.values.size() == 1) {
-                std::cout << "  value: " << value_to_string(property.values.at(0)) << std::endl;
+                std::cout << "  " << property.name << ": " << value_to_string(property.values.at(0)) << "\n";
             } else {
-                std::cout << "  values:" << std::endl;
+                std::cout << "\n";
+                std::cout << "  " << property.name << ":\n";
                 for (auto value : property.values) {
-                    std::cout << "    " << value_to_string(value) << std::endl;
+                    std::cout << "    " << value_to_string(value) << "\n";
                 }
+                // std::cout << "  )\n";
             }
-            std::cout << ")" << std::endl;
         }
+
+        std::cout << "}\n\n";
     }
 }
