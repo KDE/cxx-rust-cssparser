@@ -18,8 +18,18 @@
 namespace cssparser
 {
 
+namespace Color
+{
+
 using ColorType = rust::ColorType;
 struct Color;
+
+using Rgba = rust::Rgba;
+
+struct CustomColor {
+    std::string source;
+    std::vector<std::string> arguments;
+};
 
 struct MixedColor {
     std::shared_ptr<Color> first;
@@ -29,25 +39,25 @@ struct MixedColor {
 
 struct Color {
     ColorType type;
-    std::variant<std::nullopt_t, rust::Rgba, rust::CustomColor, MixedColor> data = std::nullopt;
+    std::variant<std::nullopt_t, Rgba, CustomColor, MixedColor> data = std::nullopt;
 
     inline std::string to_string() const {
         switch (type) {
         case ColorType::Empty:
             return "Empty";
         case ColorType::Rgba: {
-            auto rgba = std::get<rust::Rgba>(data);
+            auto rgba = std::get<Rgba>(data);
             return std::format("RGBA({}, {}, {}, {})", rgba.r, rgba.g, rgba.b, rgba.a);
         }
         case ColorType::Custom: {
-            auto custom = std::get<rust::CustomColor>(data);
+            auto custom = std::get<CustomColor>(data);
             auto args = std::string{};
 
             for (auto arg : custom.arguments) {
                 if (!args.empty()) {
                     args += ", ";
                 }
-                args += std::string(arg);
+                args += arg;
             }
 
             return std::format("CustomColor(source: {}, arguments: {})", std::string(custom.source), args);
@@ -60,6 +70,8 @@ struct Color {
         return std::string();
     }
 };
+
+}
 
 using Unit = rust::Unit;
 
@@ -95,7 +107,7 @@ struct Url {
 
 using AttributeOperator = rust::AttributeOperator;
 
-using Value = std::variant<std::nullopt_t, std::string, int, Color, Dimension, Url>;
+using Value = std::variant<std::nullopt_t, std::string, int, Color::Color, Dimension, Url>;
 
 struct AttributeMatch {
     std::string name;

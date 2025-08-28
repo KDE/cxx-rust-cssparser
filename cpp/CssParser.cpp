@@ -13,9 +13,9 @@ using namespace std::string_literals;
 namespace cssparser
 {
 
-Color convert_color(const ::rust::Box<rust::Color> &color)
+Color::Color convert_color(const ::rust::Box<rust::Color> &color)
 {
-    Color result;
+    Color::Color result;
     result.type = color->color_type();
     switch (color->color_type()) {
     case rust::ColorType::Empty:
@@ -23,19 +23,31 @@ Color convert_color(const ::rust::Box<rust::Color> &color)
     case rust::ColorType::Rgba:
         result.data = color->to_rgba();
         break;
-    case rust::ColorType::Custom:
-        result.data = color->to_custom();
+    case rust::ColorType::Custom: {
+        auto custom = color->to_custom();
+
+        std::vector<std::string> arguments;
+        std::ranges::transform(custom.arguments, std::back_inserter(arguments), [](auto arg) {
+            return std::string(arg);
+        });
+
+        result.data = Color::CustomColor {
+            .source = std::string(custom.source),
+            .arguments = arguments,
+        };
+
         break;
+    }
     case rust::ColorType::Mix: {
         auto mix = color->to_mix();
 
-        auto first = std::make_shared<Color>();
-        auto second = std::make_shared<Color>();
+        auto first = std::make_shared<Color::Color>();
+        auto second = std::make_shared<Color::Color>();
 
         *first = convert_color(mix.first);
         *second = convert_color(mix.second);
 
-        result.data = MixedColor {
+        result.data = Color::MixedColor {
             .first = first,
             .second = second,
             .amount = mix.amount
