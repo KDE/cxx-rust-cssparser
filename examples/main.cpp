@@ -43,7 +43,7 @@ std::string value_to_string(const Value &value)
             return std::to_string(arg);
         } else if constexpr (std::is_same_v<T, int>) {
             return std::to_string(arg);
-        } else if constexpr (std::is_same_v<T, Color>) {
+        } else if constexpr (std::is_same_v<T, Color::Color>) {
             return std::string(arg.to_string());
         } else if constexpr (std::is_same_v<T, Dimension>) {
             return std::string(arg.to_string());
