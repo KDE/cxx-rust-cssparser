@@ -16,12 +16,12 @@ pub(super) enum ParseValuesResult {
     CommaSeparated(Vec<Value>),
 }
 
-impl Into<Vec<Value>> for ParseValuesResult {
-    fn into(self) -> Vec<Value> {
-        match self {
-            Self::Single(values) => values,
-            Self::SpaceSeparated(values) => values,
-            Self::CommaSeparated(values) => values,
+impl From<ParseValuesResult> for Vec<Value> {
+    fn from(val: ParseValuesResult) -> Self {
+        match val {
+            ParseValuesResult::Single(values) => values,
+            ParseValuesResult::SpaceSeparated(values) => values,
+            ParseValuesResult::CommaSeparated(values) => values,
         }
     }
 }

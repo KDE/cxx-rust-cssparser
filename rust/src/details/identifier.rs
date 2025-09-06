@@ -40,14 +40,14 @@ impl std::fmt::Display for Identifier {
     }
 }
 
-impl Into<String> for Identifier {
-    fn into(self) -> String {
-        self.0
+impl From<Identifier> for String {
+    fn from(val: Identifier) -> Self {
+        val.0
     }
 }
 
-impl Into<String> for &Identifier {
-    fn into(self) -> String {
-        self.0.clone()
+impl From<&Identifier> for String {
+    fn from(val: &Identifier) -> Self {
+        val.0.clone()
     }
 }
