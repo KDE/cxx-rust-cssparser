@@ -64,11 +64,11 @@ impl<'i, const TOP_LEVEL: bool> cssparser::QualifiedRuleParser<'i> for RulesPars
         parser: &mut cssparser::Parser<'i, 't>) -> Result<Self::QualifiedRule, cssparser::ParseError<'i, Self::Error>>
     {
         let mut nested_parser = NestedParser{};
-        let mut body_parser = RuleBodyParser::<NestedParser, Self::QualifiedRule, Self::Error>::new(parser, &mut nested_parser);
+        let body_parser = RuleBodyParser::<NestedParser, Self::QualifiedRule, Self::Error>::new(parser, &mut nested_parser);
 
         let mut properties = Vec::new();
         let mut nested = Vec::new();
-        while let Some(entry) = body_parser.next() {
+        for entry in body_parser {
             if let Ok(entry_contents) = entry {
                 match entry_contents {
                     ParseResult::Property(property) => properties.push(property),

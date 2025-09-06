@@ -121,9 +121,9 @@ pub fn parse_property_definition<'i, 't>(
         definition: PropertyDefinition::empty(),
     };
     parser.definition.name = name;
-    let mut rule_parser = cssparser::RuleBodyParser::new(input, &mut parser);
+    let rule_parser = cssparser::RuleBodyParser::new(input, &mut parser);
 
-    while let Some(item) = rule_parser.next() {
+    for item in rule_parser {
         if let Err(error) = item {
             return Err(error.0)
         }
