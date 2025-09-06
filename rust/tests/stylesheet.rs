@@ -44,7 +44,7 @@ fn property_registration() {
     let property_definition = property_definition("test").unwrap();
 
     let result = stylesheet.parse_string("example { test: red; }", "Test Input");
-    assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap().to_string());
+    assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap());
 
     assert_eq!(
         stylesheet.rules,
@@ -82,7 +82,7 @@ fn custom_properties() {
         example {
             test: var(--test-color);
         }", "Test Input");
-    assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap().to_string());
+    assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap());
 
     let color_definition = property_definition("--test-color").unwrap();
     assert_eq!(*color_definition, PropertyDefinition::from_name_syntax_initial("--test-color", "*", &[Value::from(Color{r: 255, g: 0, b: 0, a: 255})], "Test Input", 0, 0).unwrap());
@@ -132,7 +132,7 @@ fn nested_block() {
                 test: blue;
             }
         }", "Test Input");
-    assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap().to_string());
+    assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap());
 
     let expected = Vec::from([
         StyleRule {
@@ -180,7 +180,7 @@ fn nested_block() {
             test: blue;
         }
     }", "Test Input");
-    assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap().to_string());
+    assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap());
 
     let rules = &stylesheet.rules;
     assert_eq!(rules.len(), expected.len());
@@ -193,7 +193,7 @@ fn complex() {
     stylesheet.root_path = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data"));
 
     let result = stylesheet.parse_file("complex.css");
-    assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap().to_string());
+    assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap());
 
     let rules = &stylesheet.rules;
     assert_eq!(rules.len(), 6);
@@ -291,7 +291,7 @@ fn import() {
     stylesheet.root_path = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data"));
 
     let result = stylesheet.parse_file("import.css");
-    assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap().to_string());
+    assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap());
 
     let rules = stylesheet.rules;
     assert_eq!(rules.len(), 4);

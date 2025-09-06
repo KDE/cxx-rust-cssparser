@@ -41,7 +41,7 @@ impl<'i> cssparser::DeclarationParser<'i> for PropertyDefinitionParser {
                         identifier.to_string()
                     },
                     cssparser::Token::Function(function) => {
-                        if function == &"var" {
+                        if function == "var" {
                             let var_function = property_function("var").unwrap();
                             let result = input.parse_nested_block(|parser| var_function(parser));
                             if let Ok(values) = result {
@@ -83,7 +83,7 @@ impl<'i> cssparser::DeclarationParser<'i> for PropertyDefinitionParser {
             "initial-value" => {
                 let value_result = parse_values(&self.definition.syntax, input);
                 if let Ok(values) = value_result {
-                    self.definition.initial = values.into();
+                    self.definition.initial = values;
                 } else {
                     return Err(value_result.err().unwrap())
                 }

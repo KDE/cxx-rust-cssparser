@@ -29,7 +29,7 @@ impl StyleRule {
             for nested_rule in &parsed.nested_rules {
                 for nested_result in StyleRule::from_parsed_rule(nested_rule) {
                     result.push(Self {
-                        selector: Selector::combine(&nested_result.selector, &selector),
+                        selector: Selector::combine(&nested_result.selector, selector),
                         properties: nested_result.properties,
                     });
                 }
