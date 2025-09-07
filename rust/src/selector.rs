@@ -53,7 +53,7 @@ impl SelectorPart {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct Selector {
     pub parts: Vec<SelectorPart>,
 }

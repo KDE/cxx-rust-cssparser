@@ -167,10 +167,10 @@ pub fn parse_values<'i, 't>(syntax: &ParsedPropertySyntax, parser: &mut cssparse
 
     if let Ok(values) = result {
         let validation_result = validate_syntax(syntax, &values, SourceLocation::from_file_location(parser.current_source_url().unwrap_or("").to_string(), parser.current_source_location()));
-        if let Ok(_) = validation_result {
-            Ok(values.into())
-        } else {
-            Err(parser.new_custom_error(validation_result.unwrap_err()))
+
+        match validation_result {
+            Ok(_) => Ok(values.into()),
+            Err(e) => Err(parser.new_custom_error(e)),
         }
     } else {
         Err(result.err().unwrap())

@@ -12,7 +12,7 @@ use crate::details::rulesparser::*;
 use crate::property::add_property_definition;
 use crate::stylerule::*;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct StyleSheet {
     pub rules: Vec<StyleRule>,
     pub errors: Vec<ParseError>,
