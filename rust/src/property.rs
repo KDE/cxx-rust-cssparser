@@ -36,7 +36,7 @@ pub fn property_definition(name: &str) -> Option<Arc<PropertyDefinition>> {
 pub fn add_property_definition(definition: &Arc<PropertyDefinition>) -> bool {
     let defs = property_definitions().write();
     if let Ok(mut definitions) = defs {
-        if definitions.iter().find(|&def| def.name == definition.name).is_some() {
+        if definitions.iter().any(|def| def.name == definition.name) {
             return false;
         }
 
