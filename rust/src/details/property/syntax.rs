@@ -432,17 +432,14 @@ fn validate_list<'a>(datatype: &DataType, values: &'a [Value], minimum: usize, m
     let mut count = 0;
     let mut remain = values;
     while !remain.is_empty() {
-        let result = validate_datatype(datatype, remain);
-        if let Ok(validate_remain) = result {
-            count += 1;
-            remain = validate_remain;
+        let validate_remain = validate_datatype(datatype, remain)?;
 
-            if count == maximum {
-                break
-            }
-        } else {
-            return result;
-        }
+        count += 1;
+        remain = validate_remain;
+
+        if count == maximum {
+            break
+        };
     }
 
     if count < minimum {
@@ -525,12 +522,7 @@ fn validate_expression<'a>(expression: &[SyntaxAlternatives], values: &'a [Value
             break;
         }
 
-        let result = validate_alternatives(alternative, remaining_values, list_type);
-        if let Ok(remain) = result {
-            remaining_values = remain;
-        } else {
-            return result;
-        }
+        remaining_values = validate_alternatives(alternative, remaining_values, list_type)?;
     }
 
     if remaining_expression.is_empty() {
