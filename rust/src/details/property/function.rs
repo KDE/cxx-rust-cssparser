@@ -32,7 +32,7 @@ pub fn property_function(name: &str) -> Option<PropertyFunction> {
         }
     }
 
-    None{}
+    None
 }
 
 #[allow(dead_code)]
