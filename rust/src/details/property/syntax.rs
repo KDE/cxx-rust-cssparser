@@ -224,12 +224,10 @@ fn repeat(input: &str) -> SyntaxParseResult<&str, SyntaxComponent> {
         )
     ).parse(input);
 
-    if let Ok((remain, (data_type, (minimum, maximum)))) = result {
-        if let SyntaxComponent::DataType(type_name) = data_type {
-            let min: usize = minimum.parse().unwrap();
-            let max: usize = maximum.parse().unwrap();
-            return Ok((remain, SyntaxComponent::Repeat{data_type: type_name, minimum: min, maximum: max}));
-        }
+    if let Ok((remain, (SyntaxComponent::DataType(type_name), (minimum, maximum)))) = result {
+        let min: usize = minimum.parse().unwrap();
+        let max: usize = maximum.parse().unwrap();
+        return Ok((remain, SyntaxComponent::Repeat{data_type: type_name, minimum: min, maximum: max}));
     }
 
     make_error(input, String::from("Input is not a valid repeat pattern"))
@@ -266,10 +264,8 @@ fn group(input: &str) -> SyntaxParseResult<&str, SyntaxGroup> {
         expression,
         delimited(space0, char(')'), space0),
     ).parse(input);
-    if let Ok((remain, result)) = expression {
-        if let ParsedPropertySyntax::Expression(exp) = result {
-            return Ok((remain, SyntaxGroup::Expression(exp)));
-        }
+    if let Ok((remain, ParsedPropertySyntax::Expression(exp))) = expression {
+        return Ok((remain, SyntaxGroup::Expression(exp)));
     }
 
     let component = component.parse(input);
