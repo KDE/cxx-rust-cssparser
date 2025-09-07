@@ -124,11 +124,7 @@ fn custom_ident_start(input: char) -> bool {
 }
 
 fn custom_ident(input: char) -> bool {
-    if custom_ident_start(input) || input.is_numeric() || input == '-' {
-        true
-    } else {
-        false
-    }
+    custom_ident_start(input) || input.is_numeric() || input == '-'
 }
 
 fn keyword(input: &str) -> SyntaxParseResult<&str, SyntaxComponent> {
