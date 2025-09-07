@@ -10,7 +10,7 @@ pub struct Identifier(String);
 impl PrecomputedHash for Identifier {
     fn precomputed_hash(&self) -> u32 {
         // let Identifier(contents) = self;
-        return 0;
+        0
     }
 }
 
@@ -24,7 +24,7 @@ impl ToCss for Identifier {
 
 impl <'a> From<&'a str> for Identifier {
     fn from(value: &'a str) -> Self {
-        return Identifier(value.to_string());
+        Identifier(value.to_string())
     }
 }
 

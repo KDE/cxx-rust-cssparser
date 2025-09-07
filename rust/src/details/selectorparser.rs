@@ -31,17 +31,17 @@ impl selectors::parser::NonTSPseudoClass for PseudoClass {
     type Impl = SelectorImpl;
 
     fn is_active_or_hover(&self) -> bool {
-        return false;
+        false
     }
 
     fn is_user_action_state(&self) -> bool {
-        return false;
+        false
     }
 
     fn visit<V>(&self, _visitor: &mut V) -> bool
     where
         V: selectors::parser::SelectorVisitor<Impl = Self::Impl>, {
-        return true;
+        true
     }
 }
 
@@ -148,7 +148,7 @@ impl SelectorParser {
             selectors.push(selector);
         }
 
-        return Ok(selectors);
+        Ok(selectors)
     }
 }
 

@@ -35,15 +35,15 @@ fn parse_dimension<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> ParseValue
             let unit = Unit::parse(unit_string.to_string().as_str());
             match unit {
                 Unit::Unknown | Unit::Unsupported => {
-                    return parse_error(parser, ParseErrorKind::InvalidPropertyValue, format!("Invalid unit for dimension: {}", unit_string));
+                    parse_error(parser, ParseErrorKind::InvalidPropertyValue, format!("Invalid unit for dimension: {}", unit_string))
                 }
                 _ => {
-                    return Ok(Value::from(Dimension{value, unit}));
+                    Ok(Value::from(Dimension{value, unit}))
                 }
             }
         },
         cssparser::Token::Percentage { has_sign: _, unit_value, int_value: _ } => {
-            return Ok(Value::from(Dimension{value: unit_value, unit: Unit::Percent}))
+            Ok(Value::from(Dimension{value: unit_value, unit: Unit::Percent}))
         },
         _ => parse_error(parser, ParseErrorKind::InvalidPropertyValue, String::from("Expected a dimension"))
     }
@@ -84,10 +84,10 @@ fn parse_string<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> ParseValueCom
     let token = parser.next()?.clone();
     match token {
         cssparser::Token::Ident(value) => {
-            return Ok(Value::from(value.as_ref()))
+            Ok(Value::from(value.as_ref()))
         },
         cssparser::Token::QuotedString(value) => {
-            return Ok(Value::from(value.as_ref()))
+            Ok(Value::from(value.as_ref()))
         }
         _ => {
             parse_error(parser, ParseErrorKind::InvalidPropertyValue, format!("Unexpected token {:?}", token))
@@ -97,7 +97,7 @@ fn parse_string<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> ParseValueCom
 
 fn parse_url<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> ParseValueComponentResult<'i> {
     let url = parser.expect_url()?;
-    return Ok(Value::new_url(url.as_ref()));
+    Ok(Value::new_url(url.as_ref()))
 }
 
 fn parse_function<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> Result<Vec<Value>, cssparser::ParseError<'i, ParseError>> {

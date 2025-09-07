@@ -104,11 +104,11 @@ impl<'i, const TOP_LEVEL: bool> cssparser::AtRuleParser<'i> for RulesParser<TOP_
         let name_string = name.to_string();
         match name_string.as_str() {
             "property" => {
-                return Ok(AtRulePrelude::Property(input.expect_ident()?.to_string()));
+                Ok(AtRulePrelude::Property(input.expect_ident()?.to_string()))
             },
             "import" => {
                 let url = input.expect_url_or_string()?.to_string();
-                return Ok(AtRulePrelude::Import(url));
+                Ok(AtRulePrelude::Import(url))
             }
             _ => parse_error(input, ParseErrorKind::UnsupportedAtRule, format!("Unsupported @-rule {}", name)),
         }
@@ -124,12 +124,12 @@ impl<'i, const TOP_LEVEL: bool> cssparser::AtRuleParser<'i> for RulesParser<TOP_
             AtRulePrelude::Property(name) => {
                 let result = parse_property_definition(input, name.to_string());
                 match result {
-                    Ok(definition) => return Ok(ParseResult::PropertyDefinition(definition)),
-                    Err(error) => return parse_error(input, ParseErrorKind::InvalidPropertyDefinition, error.to_string())
+                    Ok(definition) => Ok(ParseResult::PropertyDefinition(definition)),
+                    Err(error) => parse_error(input, ParseErrorKind::InvalidPropertyDefinition, error.to_string())
                 }
             },
             _ => {
-                return parse_error(input, ParseErrorKind::UnsupportedAtRule, format!("Got @-rule: {:?}", prelude));
+                parse_error(input, ParseErrorKind::UnsupportedAtRule, format!("Got @-rule: {:?}", prelude))
             }
         }
     }
@@ -141,10 +141,10 @@ impl<'i, const TOP_LEVEL: bool> cssparser::AtRuleParser<'i> for RulesParser<TOP_
     ) -> Result<Self::AtRule, ()> {
         match prelude {
             AtRulePrelude::Import(url) => {
-                return Ok(ParseResult::Import(url))
+                Ok(ParseResult::Import(url))
             },
             _ => {
-                return Err(())
+                Err(())
             }
         }
     }
