@@ -158,7 +158,7 @@ pub fn parse_values<'i, 't>(syntax: &ParsedPropertySyntax, parser: &mut cssparse
                 return Err(result.err().unwrap());
             }
 
-            if let Ok(_) = parser.try_parse(|parser| { parser.expect_comma() }) {
+            if parser.try_parse(|parser| { parser.expect_comma() }).is_ok() {
                 comma_separated = true;
             }
         }
