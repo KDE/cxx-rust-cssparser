@@ -67,7 +67,7 @@ fn parse_color<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> ParseValueComp
         }
     }
 
-    parse_error(parser, ParseErrorKind::InvalidPropertyValue, format!("Input could not be parsed as color"))
+    parse_error(parser, ParseErrorKind::InvalidPropertyValue, String::from("Input could not be parsed as color"))
 }
 
 fn parse_number<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> ParseValueComponentResult<'i> {

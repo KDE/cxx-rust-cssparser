@@ -472,21 +472,21 @@ fn validate_component<'a>(component: &SyntaxComponent, values: &'a [Value], list
         SyntaxComponent::Comma => Ok(values),
         SyntaxComponent::SpaceSeparatedList(datatype) => {
             if list_type == &ListType::CommaSeparated {
-                return Err(SyntaxValidateError(format!("Expected space separated list, got comma separated")))
+                return Err(SyntaxValidateError(String::from("Expected space separated list, got comma separated")))
             }
 
-            validate_list(datatype, values, 0, usize::max_value())
+            validate_list(datatype, values, 0, usize::MAX)
         },
         SyntaxComponent::CommaSeparatedList(datatype) => {
             if list_type == &ListType::SpaceSeparated {
-                return Err(SyntaxValidateError(format!("Expected comma separated list, got space separated")))
+                return Err(SyntaxValidateError(String::from("Expected comma separated list, got space separated")))
             }
 
-            validate_list(datatype, values, 0, usize::max_value())
+            validate_list(datatype, values, 0, usize::MAX)
         },
         SyntaxComponent::Repeat { data_type, minimum, maximum } => {
             if list_type == &ListType::CommaSeparated {
-                return Err(SyntaxValidateError(format!("Expected space separated list, got comma separated")))
+                return Err(SyntaxValidateError(String::from("Expected space separated list, got comma separated")))
             }
             validate_list(data_type, values, *minimum, *maximum)
         },
@@ -510,7 +510,7 @@ fn validate_alternatives<'a>(alternatives: &SyntaxAlternatives, values: &'a [Val
                     return Ok(remain);
                 }
             }
-            Err(SyntaxValidateError(format!("None of the alternatives matched")))
+            Err(SyntaxValidateError(String::from("None of the alternatives matched")))
         }
     }
 }
@@ -540,7 +540,7 @@ fn validate_expression<'a>(expression: &[SyntaxAlternatives], values: &'a [Value
     if remaining_expression.is_empty() {
         Ok(remaining_values)
     } else {
-        Err(SyntaxValidateError(format!("Expected additional values")))
+        Err(SyntaxValidateError(String::from("Expected additional values")))
     }
 }
 
