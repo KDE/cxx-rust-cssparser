@@ -112,10 +112,7 @@ impl Dimension {
     }
 
     pub fn is_length(&self) -> bool {
-        match self.unit {
-            Unit::Px | Unit::Em | Unit::Rem | Unit::Pt => true,
-            _ => false,
-        }
+        matches!(self.unit, Unit::Px | Unit::Em | Unit::Rem | Unit::Pt)
     }
 
     pub fn is_percent(&self) -> bool {
@@ -123,10 +120,7 @@ impl Dimension {
     }
 
     pub fn is_angle(&self) -> bool {
-        match self.unit {
-            Unit::Degrees | Unit::Radians => true,
-            _ => false
-        }
+        matches!(self.unit, Unit::Degrees | Unit::Radians)
     }
 }
 

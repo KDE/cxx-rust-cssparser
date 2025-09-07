@@ -120,27 +120,7 @@ pub enum ParsedPropertySyntax {
  */
 
 fn custom_ident_start(input: char) -> bool {
-    match input {
-        'a'..='z' => true,
-        'A'..='Z' => true,
-        '_' => true,
-        '\u{00B7}' => true,
-        '\u{00CD}'..='\u{00D7}' => true,
-        '\u{00D8}'..='\u{00F6}' => true,
-        '\u{00F8}'..='\u{037D}' => true,
-        '\u{037F}'..='\u{1FFF}' => true,
-        '\u{200C}' => true,
-        '\u{200D}' => true,
-        '\u{203F}' => true,
-        '\u{2040}' => true,
-        '\u{2070}'..='\u{218F}' => true,
-        '\u{2C00}'..='\u{2FEF}' => true,
-        '\u{3001}'..='\u{D7FF}' => true,
-        '\u{F900}'..='\u{FDCF}' => true,
-        '\u{FDF0}'..='\u{FFFD}' => true,
-        '\u{10000}'..='\u{10FFFF}' => true,
-        _ => false,
-    }
+    matches!(input, 'a'..='z' | 'A'..='Z' | '_' | '\u{00B7}' | '\u{00CD}'..='\u{00D7}' | '\u{00D8}'..='\u{00F6}' | '\u{00F8}'..='\u{037D}' | '\u{037F}'..='\u{1FFF}' | '\u{200C}' | '\u{200D}' | '\u{203F}' | '\u{2040}' | '\u{2070}'..='\u{218F}' | '\u{2C00}'..='\u{2FEF}' | '\u{3001}'..='\u{D7FF}' | '\u{F900}'..='\u{FDCF}' | '\u{FDF0}'..='\u{FFFD}' | '\u{10000}'..='\u{10FFFF}')
 }
 
 fn custom_ident(input: char) -> bool {
