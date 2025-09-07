@@ -11,14 +11,7 @@ fn check_value(input: &str, expected: Vec<Value>) {
     let function_name = parser.expect_function().unwrap().as_ref();
     let function = property_function(function_name).unwrap();
 
-    let result = parser.parse_nested_block(|parser| {
-        let output = function(parser);
-        if let Ok(output_ok) = output {
-            Ok(output_ok)
-        } else {
-            return output;
-        }
-    });
+    let result = parser.parse_nested_block(function);
 
     match result {
         Ok(values) => assert_eq!(values, expected),

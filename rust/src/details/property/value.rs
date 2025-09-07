@@ -104,14 +104,7 @@ fn parse_function<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> Result<Vec<
     let function_name = parser.expect_function()?.to_string();
 
     if let Some(func) = property_function(function_name.as_ref()) {
-        parser.parse_nested_block(|parser| {
-            let output = func(parser);
-            if let Ok(output_ok) = output {
-                Ok(output_ok)
-            } else {
-                return output;
-            }
-        })
+        parser.parse_nested_block(func)
     } else {
         parse_error(parser, ParseErrorKind::UnknownFunction, format!("Unknown function {:?}", function_name))
     }
