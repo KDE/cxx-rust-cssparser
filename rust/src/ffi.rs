@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: LGPL-2.1-only OR LGPL-3.0-only OR LicenseRef-KDE-Accepted-LGPL
 // SPDX-FileCopyrightText: 2025 Arjen Hiemstra <ahiemstra@heimr.nl>
 
+use std::fmt::Display;
+
 use ffi::ValueConversionError;
 
 use crate::selector::{Selector, SelectorPart, SelectorKind, SelectorValue};
@@ -211,15 +213,15 @@ impl From<&value::Color> for ffi::Color {
     }
 }
 
-impl ffi::Color {
-    fn to_string(&self) -> String {
-        format!("#{:02x}{:02x}{:02x}{:02x}", self.r, self.g, self.b, self.a)
+impl Display for ffi::Color {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("#{:02x}{:02x}{:02x}{:02x}", self.r, self.g, self.b, self.a))
     }
 }
 
-impl ffi::Dimension {
-    fn to_string(&self) -> String {
-        format!("{}{:?}", self.value, self.unit)
+impl Display for ffi::Dimension {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}{:?}", self.value, self.unit))
     }
 }
 
