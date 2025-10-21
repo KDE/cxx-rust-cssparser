@@ -10,6 +10,7 @@
 #include <string>
 #include <variant>
 #include <vector>
+#include <cstdint>
 
 #include "cxx-rust-cssparser-impl.h"
 
@@ -31,15 +32,36 @@ struct CustomColor {
     std::vector<std::string> arguments;
 };
 
-struct MixedColor {
-    std::shared_ptr<Color> first;
-    std::shared_ptr<Color> second;
+using OperationType = rust::ColorOperationType;
+
+struct MixOperationData {
+    std::shared_ptr<Color> other;
     float amount;
+};
+
+struct SetOperationData {
+    std::optional<uint8_t> r;
+    std::optional<uint8_t> g;
+    std::optional<uint8_t> b;
+    std::optional<uint8_t> a;
+
+    inline std::string to_string()
+    {
+        return std::format("SetOperationData(r: {}, g: {}, b: {}, a: {})", r.value_or(-1), g.value_or(-1), b.value_or(-1), a.value_or(-1));
+    }
+};
+
+struct ModifiedColor {
+    std::shared_ptr<Color> color;
+    OperationType operation;
+
+    using DataType = std::variant<std::nullopt_t, std::shared_ptr<Color>, MixOperationData, SetOperationData>;
+    DataType data = std::nullopt;
 };
 
 struct Color {
     ColorType type;
-    std::variant<std::nullopt_t, Rgba, CustomColor, MixedColor> data = std::nullopt;
+    std::variant<std::nullopt_t, Rgba, CustomColor, ModifiedColor> data = std::nullopt;
 
     inline std::string to_string() const {
         switch (type) {
@@ -62,9 +84,24 @@ struct Color {
 
             return std::format("CustomColor(source: {}, arguments: {})", std::string(custom.source), args);
         }
-        case ColorType::Mix: {
-            auto mix = std::get<MixedColor>(data);
-            return std::format("MixColor(first: {}, second: {}, amount: {:.1f})", mix.first->to_string(), mix.second->to_string(), mix.amount);
+        case ColorType::Modified: {
+            auto modified = std::get<ModifiedColor>(data);
+
+            switch (modified.operation) {
+            case OperationType::Add:
+                return std::format("ModifiedColor(color: {}, operation: add, data: {})", modified.color->to_string(), std::get<std::shared_ptr<Color>>(modified.data)->to_string());
+            case OperationType::Subtract:
+                return std::format("ModifiedColor(color: {}, operation: subtract, data: {})", modified.color->to_string(), std::get<std::shared_ptr<Color>>(modified.data)->to_string());
+            case OperationType::Multiply:
+                return std::format("ModifiedColor(color: {}, operation: multiply, data: {})", modified.color->to_string(), std::get<std::shared_ptr<Color>>(modified.data)->to_string());
+            case OperationType::Set:
+                return std::format("ModifiedColor(color: {}, operation: set, data: {})", modified.color->to_string(), std::get<SetOperationData>(modified.data).to_string());
+            case OperationType::Mix: {
+                auto data = std::get<MixOperationData>(modified.data);
+                return std::format("ModifiedColor(color: {}, operation: mix, data: MixOperationData(other: {}, amount: {}))", modified.color->to_string(), data.other->to_string(), data.amount);
+            }
+            }
+
         }
         }
         return std::string();

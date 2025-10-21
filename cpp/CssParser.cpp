@@ -38,21 +38,56 @@ Color::Color convert_color(const ::rust::Box<rust::Color> &color)
 
         break;
     }
-    case rust::ColorType::Mix: {
-        auto mix = color->to_mix();
+    case rust::ColorType::Modified: {
+        auto modified = color->to_modified();
 
-        auto first = std::make_shared<Color::Color>();
-        auto second = std::make_shared<Color::Color>();
+        auto result_color = Color::ModifiedColor{};
+        result_color.color = std::make_shared<Color::Color>(convert_color(modified.color));
+        result_color.operation = modified.operation_type();
 
-        *first = convert_color(mix.first);
-        *second = convert_color(mix.second);
+        switch (result_color.operation) {
+            case rust::ColorOperationType::Add:
+            case rust::ColorOperationType::Subtract:
+            case rust::ColorOperationType::Multiply:
+                result_color.data = std::make_shared<Color::Color>(convert_color(modified.color_value()));
+                break;
+            case rust::ColorOperationType::Set: {
+                auto set_data = modified.set_values();
+                auto result_data = Color::SetOperationData{};
+                if (set_data.r < 0) {
+                    result_data.r = std::nullopt;
+                } else {
+                    result_data.r = uint8_t(set_data.r);
+                }
+                if (set_data.g < 0) {
+                    result_data.g = std::nullopt;
+                } else {
+                    result_data.g = uint8_t(set_data.g);
+                }
+                if (set_data.b < 0) {
+                    result_data.b = std::nullopt;
+                } else {
+                    result_data.b = uint8_t(set_data.b);
+                }
+                if (set_data.a < 0) {
+                    result_data.a = std::nullopt;
+                } else {
+                    result_data.a = uint8_t(set_data.a);
+                }
+                result_color.data = result_data;
+                break;
+            }
+            case rust::ColorOperationType::Mix: {
+                auto mix_data = modified.mix_values();
+                result_color.data = Color::MixOperationData{
+                    .other = std::make_shared<Color::Color>(convert_color(mix_data.other)),
+                    .amount = mix_data.amount,
+                };
+                break;
+            }
+        }
 
-        result.data = Color::MixedColor {
-            .first = first,
-            .second = second,
-            .amount = mix.amount
-        };
-
+        result.data = result_color;
         break;
     }
     }
