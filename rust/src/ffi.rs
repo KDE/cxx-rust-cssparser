@@ -10,7 +10,7 @@ use crate::stylesheet::StyleSheet;
 use crate::value;
 
 use crate::value::Value;
-use crate::value::Color;
+use crate::value::{Color, ColorOperation};
 
 #[cxx::bridge(namespace = "cssparser::rust")]
 mod ffi {
@@ -34,7 +34,7 @@ mod ffi {
         Empty,
         Rgba,
         Custom,
-        Mix,
+        Modified,
     }
 
     pub struct Rgba {
@@ -49,10 +49,31 @@ mod ffi {
         arguments: Vec<String>,
     }
 
-    pub struct MixedColor {
-        first: Box<Color>,
-        second: Box<Color>,
+    pub enum ColorOperationType {
+        Set,
+        Add,
+        Subtract,
+        Multiply,
+        Mix,
+    }
+
+    // This uses -1 to indicate the value should not be set, which is why this
+    // uses i16 for values.
+    pub struct SetColorOperationValues {
+        r: i16,
+        g: i16,
+        b: i16,
+        a: i16,
+    }
+
+    pub struct MixColorOperationValues {
+        other: Box<Color>,
         amount: f32,
+    }
+
+    pub struct ModifiedColor {
+        color: Box<Color>,
+        operation: Box<ColorOperation>,
     }
 
     pub enum ValueType {
@@ -111,12 +132,19 @@ mod ffi {
     extern "Rust" {
         fn to_string(self: &Dimension) -> String;
 
+        fn operation_type(self: &ModifiedColor) -> ColorOperationType;
+        fn color_value(self: &ModifiedColor) -> Result<Box<Color>>;
+        fn set_values(self: &ModifiedColor) -> Result<SetColorOperationValues>;
+        fn mix_values(self: &ModifiedColor) -> Result<MixColorOperationValues>;
+
+        type ColorOperation;
+
         type Color;
         fn color_type(self: &Color) -> ColorType;
         fn to_string(self: &Color) -> String;
         fn to_rgba(self: &Color) -> Result<Rgba>;
         fn to_custom(self: &Color) -> Result<CustomColor>;
-        fn to_mix(self: &Color) -> Result<MixedColor>;
+        fn to_modified(self: &Color) -> Result<ModifiedColor>;
 
         type Value;
         fn value_type(self: &Value) -> ValueType;
@@ -174,7 +202,7 @@ convert_enum!(value::ColorData, ffi::ColorType, {
     value::ColorData::Empty => Empty,
     value::ColorData::Rgba{ r: _, g: _, b: _, a: _ } => Rgba,
     value::ColorData::Custom{ source: _, arguments: _ } => Custom,
-    value::ColorData::Mix{ first: _, second: _, amount: _ } => Mix,
+    value::ColorData::Modified{ color: _, operation: _ } => Modified,
 });
 
 convert_enum!(value::ValueData, ffi::ValueType, {
@@ -227,6 +255,14 @@ convert_enum!(SelectorKind, ffi::SelectorKind, {
     SelectorKind::ChildCombinator => ChildCombinator,
 });
 
+convert_enum!(value::ColorOperation, ffi::ColorOperationType, {
+    value::ColorOperation::Set { r: _, g: _, b: _, a: _ } => Set,
+    value::ColorOperation::Add { other: _ } => Add,
+    value::ColorOperation::Subtract { other: _ } => Subtract,
+    value::ColorOperation::Multiply { other: _ } => Multiply,
+    value::ColorOperation::Mix { other: _, amount: _ } => Mix,
+});
+
 impl From<&value::Dimension> for ffi::Dimension {
     fn from(value: &value::Dimension) -> Self {
         ffi::Dimension{
@@ -242,6 +278,45 @@ impl ffi::Dimension {
     }
 }
 
+impl ffi::ModifiedColor {
+    fn operation_type(&self) -> ffi::ColorOperationType {
+        (*self.operation.clone()).into()
+    }
+
+    fn color_value(&self) -> Result<Box<Color>, ffi::ValueConversionError> {
+        match self.operation.as_ref() {
+            value::ColorOperation::Add { other } => Ok(other.clone()),
+            value::ColorOperation::Subtract { other } => Ok(other.clone()),
+            value::ColorOperation::Multiply { other } => Ok(other.clone()),
+            _ => Err(ValueConversionError { message: String::from("Modified color does not have a color value") })
+        }
+    }
+
+    fn set_values(&self) -> Result<ffi::SetColorOperationValues, ffi::ValueConversionError> {
+        if let value::ColorOperation::Set { r, g, b, a } = self.operation.as_ref() {
+            Ok(ffi::SetColorOperationValues {
+                r: r.map_or(-1, |v| v as i16),
+                g: g.map_or(-1, |v| v as i16),
+                b: b.map_or(-1, |v| v as i16),
+                a: a.map_or(-1, |v| v as i16),
+            })
+        } else {
+            Err(ValueConversionError { message: String::from("Not a set color operation") })
+        }
+    }
+
+    fn mix_values(&self) -> Result<ffi::MixColorOperationValues, ffi::ValueConversionError> {
+        if let value::ColorOperation::Mix { other, amount } = self.operation.as_ref() {
+            Ok(ffi::MixColorOperationValues {
+                other: other.clone(),
+                amount: *amount,
+            })
+        } else {
+            Err(ValueConversionError { message: String::from("Not an add color operation") })
+        }
+    }
+}
+
 impl value::Color {
     fn color_type(&self) -> ffi::ColorType {
         self.data.clone().into()
@@ -253,6 +328,7 @@ impl value::Color {
             value::ColorData::Rgba{r, g, b, a} => format!("RGBA({}, {}, {}, {})", r, g, b, a),
             value::ColorData::Custom{source, arguments} => format!("Custom({}, {:?})", source, arguments),
             value::ColorData::Mix{first, second, amount} => format!("Mix({}, {}, {})", first.to_string(), second.to_string(), amount),
+            value::ColorData::Modified { color, operation } => format!("Modified({}, {:?})", color.to_string(), operation),
         }
     }
 
@@ -272,11 +348,11 @@ impl value::Color {
         }
     }
 
-    fn to_mix(&self) -> Result<ffi::MixedColor, ffi::ValueConversionError> {
-        if let value::ColorData::Mix{first, second, amount} = &self.data {
-            Ok(ffi::MixedColor{first: first.clone(), second: second.clone(), amount: *amount})
+    fn to_modified(&self) -> Result<ffi::ModifiedColor, ffi::ValueConversionError> {
+        if let value::ColorData::Modified { color, operation } = &self.data {
+            Ok(ffi::ModifiedColor{color: color.clone(), operation: Box::new(operation.clone())})
         } else {
-            Err(ValueConversionError{ message: String::from("Not an RGBA color") })
+            Err(ValueConversionError{ message: String::from("Not a Modified color") })
         }
     }
 }
