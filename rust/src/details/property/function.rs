@@ -49,6 +49,16 @@ pub fn add_property_function(name: &str, function: PropertyFunction) -> bool {
     true
 }
 
+// Helper function to parse function arguments based on a CSS property syntax
+fn parse_arguments<'i, 't>(syntax: &str, parser: &mut cssparser::Parser<'i, 't>) -> PropertyFunctionResult<'i> {
+    let syntax_result = parse_syntax(syntax, SourceLocation::from_file("inline"));
+    if let Err(error) = syntax_result {
+        return Err(parser.new_custom_error(error));
+    }
+
+    parse_values(syntax_result.as_ref().unwrap(), parser)
+}
+
 // Parse `var(<custom-property-name>, <declaration-value>?)`
 fn var<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> PropertyFunctionResult<'i> {
     let var_name = parser.expect_ident()?.to_string();
@@ -67,12 +77,7 @@ fn var<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> PropertyFunctionResult
 
 // Parse `mix(<color>, <color>, <number>)`
 fn mix<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> PropertyFunctionResult<'i> {
-    let syntax = parse_syntax("<color>, <color>, <number>", SourceLocation::from_file("inline"));
-    if let Err(error) = syntax {
-        return Err(parser.new_custom_error(error));
-    }
-
-    let values = parse_values(syntax.as_ref().unwrap(), parser)?;
+    let values = parse_arguments("<color>, <color>, <number>", parser)?;
 
     let first_color: Color = values[0].clone().into();
     let second_color: Color = values[1].clone().into();
@@ -85,12 +90,8 @@ fn mix<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> PropertyFunctionResult
 
 // Parse `custom-color(<string>, <string>#)`
 fn custom_color<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> PropertyFunctionResult<'i> {
-    let syntax = parse_syntax("<string>, <string>#", SourceLocation::from_file("inline"));
-    if let Err(error) = syntax {
-        return Err(parser.new_custom_error(error));
-    }
+    let values = parse_arguments("<string>, <string>#", parser)?;
 
-    let values = parse_values(syntax.as_ref().unwrap(), parser)?;
     let (source, args) = values.split_first().unwrap();
 
     let string_args = args.iter().map(|v| v.to_string()).collect();
