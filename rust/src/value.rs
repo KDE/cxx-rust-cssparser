@@ -39,7 +39,6 @@ pub(crate) enum ColorData {
     #[default] Empty,
     Rgba { r: u8, g: u8, b: u8, a: u8 },
     Custom { source: String, arguments: Vec<String> },
-    Mix { first: Box<Color>, second: Box<Color>, amount: f32 },
     Modified { color: Box<Color>, operation: ColorOperation },
 }
 
@@ -59,16 +58,6 @@ impl Color {
 
     pub fn custom(source: String, arguments: Vec<String>) -> Color {
         Color { data: ColorData::Custom {source, arguments} }
-    }
-
-    pub fn mix(first: &Color, second: &Color, amount: f32) -> Color {
-        Color {
-            data: ColorData::Mix {
-                first: Box::new(first.clone()),
-                second: Box::new(second.clone()),
-                amount
-            }
-        }
     }
 
     pub fn modified(first: &Color, operation: ColorOperation) -> Color {

@@ -327,7 +327,6 @@ impl value::Color {
             value::ColorData::Empty => format!("Empty"),
             value::ColorData::Rgba{r, g, b, a} => format!("RGBA({}, {}, {}, {})", r, g, b, a),
             value::ColorData::Custom{source, arguments} => format!("Custom({}, {:?})", source, arguments),
-            value::ColorData::Mix{first, second, amount} => format!("Mix({}, {}, {})", first.to_string(), second.to_string(), amount),
             value::ColorData::Modified { color, operation } => format!("Modified({}, {:?})", color.to_string(), operation),
         }
     }
