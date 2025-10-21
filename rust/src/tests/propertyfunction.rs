@@ -41,4 +41,24 @@ test_cases! {
         check_value "custom-color('test', 'some', 'arguments')", vec![
             Value::from(Color::custom(String::from("test"), vec![String::from("some"), String::from("arguments")]))
         ];
+
+    modify_color_add:
+        check_value "modify-color(black add white)", vec![
+            Value::from(Color::modified(&Color::rgba(0, 0, 0, 255), ColorOperation::add(&Color::rgba(255, 255, 255, 255))))
+        ];
+
+    modify_color_subtract:
+        check_value "modify-color(black subtract white)", vec![
+            Value::from(Color::modified(&Color::rgba(0, 0, 0, 255), ColorOperation::subtract(&Color::rgba(255, 255, 255, 255))))
+        ];
+
+    modify_color_multiply:
+        check_value "modify-color(black multiply white)", vec![
+            Value::from(Color::modified(&Color::rgba(0, 0, 0, 255), ColorOperation::multiply(&Color::rgba(255, 255, 255, 255))))
+        ];
+
+    modify_color_set_alpha:
+        check_value "modify-color(black set-alpha 0.5)", vec![
+            Value::from(Color::modified(&Color::rgba(0, 0, 0, 255), ColorOperation::set(None, None, None, Some(127))))
+        ];
 }

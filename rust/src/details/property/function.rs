@@ -22,6 +22,7 @@ fn property_functions() -> &'static RwLock<HashMap<String, PropertyFunction>> {
         map.insert(String::from("var"), var);
         map.insert(String::from("mix"), mix);
         map.insert(String::from("custom-color"), custom_color);
+        map.insert(String::from("modify-color"), modify_color);
         RwLock::new(map)
     })
 }
@@ -97,4 +98,30 @@ fn custom_color<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> PropertyFunct
     let string_args = args.iter().map(|v| v.to_string()).collect();
 
     Ok(vec![Value::from(Color::custom(source.to_string(), string_args))])
+}
+
+// Parse `modify-color(<color> (add | subtract | multiply | set-alpha) (<color> | <number>))
+fn modify_color<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> PropertyFunctionResult<'i> {
+    let values = parse_arguments("<color> (((add | subtract | multiply) <color>) | (set-alpha <number>))", parser)?;
+    let color: Color = values[0].clone().into();
+    let operation: String = values[1].to_string();
+    let data: Value = values[2].clone();
+
+    let result = match operation.as_str() {
+        "add" => Color::modified(&color, ColorOperation::add(&data.into())),
+        "subtract" => Color::modified(&color, ColorOperation::subtract(&data.into())),
+        "multiply" => Color::modified(&color, ColorOperation::multiply(&data.into())),
+        "set-alpha" => {
+            let alpha = match data.data {
+                ValueData::Dimension(dimension) => {
+                    Some((dimension.value * 255.0) as u8)
+                }
+                _ => None,
+            };
+            Color::modified(&color, ColorOperation::set(None, None, None, alpha))
+        },
+        _ => return parse_error(parser, ParseErrorKind::Unknown, String::from("Unexpected modifiy-color argument")),
+    };
+
+    Ok(vec![Value::from(result)])
 }
