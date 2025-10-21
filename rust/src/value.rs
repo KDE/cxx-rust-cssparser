@@ -40,6 +40,7 @@ pub(crate) enum ColorData {
     Rgba { r: u8, g: u8, b: u8, a: u8 },
     Custom { source: String, arguments: Vec<String> },
     Mix { first: Box<Color>, second: Box<Color>, amount: f32 },
+    Modified { color: Box<Color>, operation: ColorOperation },
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -66,6 +67,15 @@ impl Color {
                 first: Box::new(first.clone()),
                 second: Box::new(second.clone()),
                 amount
+            }
+        }
+    }
+
+    pub fn modified(first: &Color, operation: ColorOperation) -> Color {
+        Color {
+            data: ColorData::Modified {
+                color: Box::new(first.clone()),
+                operation,
             }
         }
     }
