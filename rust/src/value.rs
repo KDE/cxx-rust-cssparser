@@ -3,6 +3,37 @@
 
 use crate::details::identifier::Identifier;
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum ColorOperation {
+    Set { r: Option<u8>, g: Option<u8>, b: Option<u8>, a: Option<u8> },
+    Add { other: Box<Color> },
+    Subtract { other: Box<Color> },
+    Multiply { other: Box<Color> },
+    Mix { other: Box<Color>, amount: f32 },
+}
+
+impl ColorOperation {
+    pub fn add(color: &Color) -> ColorOperation {
+        ColorOperation::Add { other: Box::new(color.clone()) }
+    }
+
+    pub fn subtract(color: &Color) -> ColorOperation {
+        ColorOperation::Subtract { other: Box::new(color.clone()) }
+    }
+
+    pub fn multiply(color: &Color) -> ColorOperation {
+        ColorOperation::Multiply { other: Box::new(color.clone()) }
+    }
+
+    pub fn set(r: Option<u8>, g: Option<u8>, b: Option<u8>, a: Option<u8>) -> ColorOperation {
+        ColorOperation::Set { r, g, b, a }
+    }
+
+    pub fn mix(color: &Color, amount: f32) -> ColorOperation {
+        ColorOperation::Mix { other: Box::new(color.clone()), amount }
+    }
+}
+
 #[derive(Debug, Default, Clone, PartialEq)]
 pub(crate) enum ColorData {
     #[default] Empty,
