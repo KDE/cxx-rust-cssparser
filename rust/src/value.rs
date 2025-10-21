@@ -258,16 +258,6 @@ impl Value {
 
 impl From<&str> for Value {
     fn from(value: &str) -> Self {
-        let named_color = cssparser::color::parse_named_color(value);
-        if let Ok(color) = named_color {
-            return Value{data: ValueData::Color( Color{ data: ColorData::Rgba{r: color.0, g: color.1, b: color.2, a: 255} })};
-        }
-
-        let hashed_color = cssparser::color::parse_hash_color(value.as_bytes());
-        if let Ok(color) = hashed_color {
-            return Value{data: ValueData::Color(Color{data: ColorData::Rgba{r: color.0, g: color.1, b: color.2, a: cssparser::color::clamp_unit_f32(color.3)}})};
-        }
-
         Value{data: ValueData::String(value.to_string())}
     }
 }
