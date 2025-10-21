@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2025 Arjen Hiemstra <ahiemstra@heimr.nl>
 
 use crate::details::property::function::property_function;
-use crate::value::{Color, Value};
+use crate::value::{Color, ColorOperation, Value};
 
 fn check_value(input: &str, expected: Vec<Value>) {
     let mut parser_input = cssparser::ParserInput::new(input);
@@ -29,12 +29,12 @@ fn check_value(input: &str, expected: Vec<Value>) {
 test_cases! {
     mix:
         check_value "mix(black, white, 0.5)", vec![
-            Value::from(Color::mix(&Color::rgba(0, 0, 0, 255), &Color::rgba(255, 255, 255, 255), 0.5))
+            Value::from(Color::modified(&Color::rgba(0, 0, 0, 255), ColorOperation::mix(&Color::rgba(255, 255, 255, 255), 0.5)))
         ];
 
     mix_alpha:
         check_value "mix(rgba(255, 0, 255, 0.25), rgba(255, 255, 0, 0.75), 0.25)", vec![
-            Value::from(Color::mix(&Color::rgba(255, 0, 255, 63), &Color::rgba(255, 255, 0, 191), 0.25))
+            Value::from(Color::modified(&Color::rgba(255, 0, 255, 63), ColorOperation::mix(&Color::rgba(255, 255, 0, 191), 0.25)))
         ];
 
     custom_color:

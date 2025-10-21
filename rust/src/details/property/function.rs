@@ -5,7 +5,7 @@ use std::sync::{RwLock, OnceLock};
 use std::collections::hash_map::HashMap;
 
 use crate::property::property_definition;
-use crate::value::{Value, Color, Dimension};
+use crate::value::{Value, ValueData, Color, ColorOperation, Dimension};
 
 use crate::details::{parse_error, ParseError, ParseErrorKind, SourceLocation};
 
@@ -80,10 +80,10 @@ fn mix<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> PropertyFunctionResult
     let values = parse_arguments("<color>, <color>, <number>", parser)?;
 
     let first_color: Color = values[0].clone().into();
-    let second_color: Color = values[1].clone().into();
+    let second_color: Box<Color> = Box::new(values[1].clone().into());
     let amount: Dimension = values[2].clone().into();
 
-    let mixed = Color::mix(&first_color, &second_color, amount.value);
+    let mixed = Color::modified(&first_color, ColorOperation::mix(&second_color, amount.value));
 
     Ok(vec![Value::from(mixed)])
 }
