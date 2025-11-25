@@ -54,8 +54,8 @@ test_cases! {
     pseudoclass:
         check_selector_toplevel "type:hovered", vec![
             Selector::from_parts(&[
-                SelectorPart::new_with_value(SelectorKind::PseudoClass, Value::from("hovered")),
                 SelectorPart::new_with_value(SelectorKind::Type, Value::from("type")),
+                SelectorPart::new_with_value(SelectorKind::PseudoClass, Value::from("hovered")),
             ])
         ];
 
@@ -76,8 +76,8 @@ test_cases! {
     pseudoclass_child:
         check_selector_toplevel "type:hovered > .class", vec![
             Selector::from_parts(&[
-                SelectorPart::new_with_value(SelectorKind::PseudoClass, Value::from("hovered")),
                 SelectorPart::new_with_value(SelectorKind::Type, Value::from("type")),
+                SelectorPart::new_with_value(SelectorKind::PseudoClass, Value::from("hovered")),
                 SelectorPart::new_with_empty(SelectorKind::ChildCombinator),
                 SelectorPart::new_with_value(SelectorKind::Class, Value::from("class")),
             ])
@@ -104,9 +104,9 @@ test_cases! {
     parent_same:
         check_selector_nested "&.class:hovered", vec![
             Selector::from_parts(&[
-                SelectorPart::new_with_value(SelectorKind::PseudoClass, Value::from("hovered")),
-                SelectorPart::new_with_value(SelectorKind::Class, Value::from("class")),
                 SelectorPart::new_with_empty(SelectorKind::RelativeParent),
+                SelectorPart::new_with_value(SelectorKind::Class, Value::from("class")),
+                SelectorPart::new_with_value(SelectorKind::PseudoClass, Value::from("hovered")),
             ])
         ];
 
@@ -120,6 +120,7 @@ test_cases! {
     attribute_exists:
         check_selector_toplevel "type[test]", vec![
             Selector::from_parts(&[
+                SelectorPart::new_with_value(SelectorKind::Type, Value::from("type")),
                 SelectorPart {
                     kind: SelectorKind::Attribute,
                     value: SelectorValue::Attribute {
@@ -128,13 +129,13 @@ test_cases! {
                         value: Value::empty(),
                     }
                 },
-                SelectorPart::new_with_value(SelectorKind::Type, Value::from("type")),
             ]),
         ];
 
     attribute_equal:
         check_selector_toplevel ".class[test=\"test\"]", vec![
             Selector::from_parts(&[
+                SelectorPart::new_with_value(SelectorKind::Class, Value::from("class")),
                 SelectorPart {
                     kind: SelectorKind::Attribute,
                     value: SelectorValue::Attribute {
@@ -143,13 +144,13 @@ test_cases! {
                         value: Value::from("test"),
                     }
                 },
-                SelectorPart::new_with_value(SelectorKind::Class, Value::from("class")),
             ])
         ];
 
     attribute_nested_substring:
         check_selector_nested "&[test*=\"test\"]", vec![
             Selector::from_parts(&[
+                SelectorPart::new_with_empty(SelectorKind::RelativeParent),
                 SelectorPart {
                     kind: SelectorKind::Attribute,
                     value: SelectorValue::Attribute {
@@ -158,6 +159,18 @@ test_cases! {
                         value: Value::from("test"),
                     }
                 },
+            ])
+        ];
+
+    multiple_relative:
+        check_selector_nested ".class & & &", vec![
+            Selector::from_parts(&[
+                SelectorPart::new_with_value(SelectorKind::Class, Value::from("class")),
+                SelectorPart::new_with_empty(SelectorKind::DescendantCombinator),
+                SelectorPart::new_with_empty(SelectorKind::RelativeParent),
+                SelectorPart::new_with_empty(SelectorKind::DescendantCombinator),
+                SelectorPart::new_with_empty(SelectorKind::RelativeParent),
+                SelectorPart::new_with_empty(SelectorKind::DescendantCombinator),
                 SelectorPart::new_with_empty(SelectorKind::RelativeParent),
             ])
         ]

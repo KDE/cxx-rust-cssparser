@@ -94,18 +94,25 @@ impl SelectorParser {
         let mut selectors = Vec::new();
         for entry in result.unwrap().slice() {
             let mut selector = Selector::new();
+            let mut parts: Vec<SelectorPart> = Vec::new();
+
+            // Neither parse_order nor match_order actually return parts in parsing order.
+            // Instead, the parts between combinators seem to be always reversed in order.
+            // So what we do here is collect parts in the right order into a separate vec,
+            // then when there's a combinator we combine the parts with the combinator in
+            // the resulting selector.
             for part in entry.iter_raw_parse_order_from(0) {
                 match part {
-                    selectors::parser::Component::LocalName(local_name) => selector.push_with_value(SelectorKind::Type, Value::from(&local_name.name)),
-                    selectors::parser::Component::ID(name) => selector.push_with_value(SelectorKind::Id, Value::from(name)),
-                    selectors::parser::Component::Class(name) => selector.push_with_value(SelectorKind::Class, Value::from(name)),
-                    selectors::parser::Component::NonTSPseudoClass(pseudo_class) => selector.push_with_value(SelectorKind::PseudoClass, Value::from(pseudo_class.0.as_str())),
-                    selectors::parser::Component::ParentSelector => selector.push_with_empty(SelectorKind::RelativeParent),
-                    selectors::parser::Component::Root => selector.push_with_empty(SelectorKind::DocumentRoot),
-                    selectors::parser::Component::ExplicitUniversalType => selector.push_with_empty(SelectorKind::AnyElement),
+                    selectors::parser::Component::LocalName(local_name) => parts.insert(0, SelectorPart::new_with_value(SelectorKind::Type, Value::from(&local_name.name))),
+                    selectors::parser::Component::ID(name) => parts.insert(0, SelectorPart::new_with_value(SelectorKind::Id, Value::from(name))),
+                    selectors::parser::Component::Class(name) => parts.insert(0, SelectorPart::new_with_value(SelectorKind::Class, Value::from(name))),
+                    selectors::parser::Component::NonTSPseudoClass(pseudo_class) => parts.insert(0, SelectorPart::new_with_value(SelectorKind::PseudoClass, Value::from(pseudo_class.0.as_str()))),
+                    selectors::parser::Component::ParentSelector => parts.insert(0, SelectorPart::new_with_empty(SelectorKind::RelativeParent)),
+                    selectors::parser::Component::Root => parts.insert(0, SelectorPart::new_with_empty(SelectorKind::DocumentRoot)),
+                    selectors::parser::Component::ExplicitUniversalType => parts.insert(0, SelectorPart::new_with_empty(SelectorKind::AnyElement)),
 
                     selectors::parser::Component::AttributeInNoNamespaceExists { local_name, local_name_lower: _ } => {
-                        selector.parts.push(SelectorPart {
+                        parts.insert(0, SelectorPart {
                             kind: SelectorKind::Attribute,
                             value: SelectorValue::Attribute {
                                 name: local_name.to_string(),
@@ -124,7 +131,7 @@ impl SelectorParser {
                             selectors::attr::AttrSelectorOperator::Substring => AttributeOperator::Substring,
                             selectors::attr::AttrSelectorOperator::DashMatch => AttributeOperator::DashMatch,
                         };
-                        selector.parts.push(SelectorPart {
+                        parts.insert(0, SelectorPart {
                             kind: SelectorKind::Attribute,
                             value: SelectorValue::Attribute {
                                 name: local_name.to_string(),
@@ -135,6 +142,9 @@ impl SelectorParser {
                     },
 
                     selectors::parser::Component::Combinator(combinator) => {
+                        selector.parts.extend(parts);
+                        parts = Vec::new();
+
                         match combinator {
                             selectors::parser::Combinator::Descendant => selector.parts.push(SelectorPart::new_with_empty(SelectorKind::DescendantCombinator)),
                             selectors::parser::Combinator::Child => selector.parts.push(SelectorPart::new_with_empty(SelectorKind::ChildCombinator)),
@@ -145,10 +155,11 @@ impl SelectorParser {
                 }
             }
 
+            selector.parts.extend(parts);
             selectors.push(selector);
         }
 
-        return Ok(selectors);
+        Ok(selectors)
     }
 }
 

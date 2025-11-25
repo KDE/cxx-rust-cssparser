@@ -203,10 +203,11 @@ fn complex() {
             SelectorPart::new_with_value(SelectorKind::Type, Value::from("button")),
         ]),
         Selector::from_parts(&[
-            SelectorPart::new_with_value(SelectorKind::PseudoClass, Value::from("hovered")),
             SelectorPart::new_with_value(SelectorKind::Type, Value::from("button")),
+            SelectorPart::new_with_value(SelectorKind::PseudoClass, Value::from("hovered")),
         ]),
         Selector::from_parts(&[
+            SelectorPart::new_with_value(SelectorKind::Type, Value::from("button")),
             SelectorPart {
                 kind: SelectorKind::Attribute,
                 value: SelectorValue::Attribute {
@@ -215,16 +216,16 @@ fn complex() {
                              value: Value::from("something"),
                 }
             },
-            SelectorPart::new_with_value(SelectorKind::Type, Value::from("button")),
         ]),
         Selector::from_parts(&[
             SelectorPart::new_with_value(SelectorKind::Type, Value::from("toolbutton")),
         ]),
         Selector::from_parts(&[
+            SelectorPart::new_with_value(SelectorKind::Type, Value::from("toolbutton")),
             SelectorPart::new_with_value(SelectorKind::PseudoClass, Value::from("hovered")),
-            SelectorPart::new_with_value(SelectorKind::Type, Value::from("toolbutton")),
         ]),
         Selector::from_parts(&[
+            SelectorPart::new_with_value(SelectorKind::Type, Value::from("toolbutton")),
             SelectorPart {
                 kind: SelectorKind::Attribute,
                 value: SelectorValue::Attribute {
@@ -233,7 +234,6 @@ fn complex() {
                     value: Value::from("something"),
                 }
             },
-            SelectorPart::new_with_value(SelectorKind::Type, Value::from("toolbutton")),
         ]),
     ];
 
