@@ -72,14 +72,29 @@ impl Selector {
     pub fn combine(first: &Selector, second: &Selector) -> Selector {
         let mut parts = first.parts.clone();
 
-        let second_parts = second.parts.clone();
-        if !second_parts.is_empty() {
-            let parent = parts.iter().position(|part| part.kind == SelectorKind::RelativeParent);
-            if let Some(index) = parent {
-                parts.remove(index);
-                parts.splice(index..index, second_parts);
+        if !second.parts.is_empty() {
+            // Find all the indices of RelativeParent so we can replace them
+            // later on.
+            let mut relative_indices = Vec::new();
+            for (index, part) in parts.iter().enumerate() {
+                if part.kind == SelectorKind::RelativeParent {
+                    relative_indices.push(index);
+                }
+            }
+
+            if relative_indices.is_empty() {
+                parts.extend(second.parts.clone())
             } else {
-                parts.extend(second_parts);
+                // Since we modify the list and introduce potentially multiple
+                // new items, our indices may shift. We need to keep track of
+                // that otherwise the insertion point becomes incorrect.
+                let mut offset = 0;
+                for index in relative_indices {
+                    let i = index + offset;
+                    parts.remove(i);
+                    parts.splice(i..i, second.parts.clone());
+                    offset = offset + second.parts.len() - 1;
+                }
             }
         }
 
