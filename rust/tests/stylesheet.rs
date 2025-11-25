@@ -196,7 +196,7 @@ fn complex() {
     assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap().to_string());
 
     let rules = &stylesheet.rules;
-    assert_eq!(rules.len(), 6);
+    assert_eq!(rules.len(), 9);
 
     let expected_selectors = [
         Selector::from_parts(&[
@@ -235,10 +235,27 @@ fn complex() {
                 }
             },
         ]),
+        Selector::from_parts(&[
+            SelectorPart::new_with_value(SelectorKind::Type, Value::from("button")),
+            SelectorPart::new_with_value(SelectorKind::Class, Value::from("primary")),
+        ]),
+        Selector::from_parts(&[
+            SelectorPart::new_with_value(SelectorKind::Type, Value::from("button")),
+            SelectorPart::new_with_empty(SelectorKind::DescendantCombinator),
+            SelectorPart::new_with_value(SelectorKind::Type, Value::from("indicator")),
+        ]),
+        Selector::from_parts(&[
+            SelectorPart::new_with_value(SelectorKind::Type, Value::from("button")),
+            SelectorPart::new_with_empty(SelectorKind::DescendantCombinator),
+            SelectorPart::new_with_value(SelectorKind::Type, Value::from("indicator")),
+            SelectorPart::new_with_value(SelectorKind::PseudoClass, Value::from("hovered")),
+        ]),
     ];
 
     let selectors: Vec<Selector> = rules.iter().map(|item| item.selector.clone()).collect();
-    assert_eq!(selectors, expected_selectors);
+    for (index, selector) in selectors.iter().enumerate() {
+        assert_eq!(selector, &expected_selectors[index]);
+    }
 
     let expected_properties = vec![
         Property {

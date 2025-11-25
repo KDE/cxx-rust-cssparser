@@ -54,3 +54,15 @@ toolbutton {
         color: #0000ff;
     }
 }
+
+button.primary {
+    color: #00ff00;
+}
+
+button indicator {
+    color: green;
+
+    &:hovered {
+        color: rgba(0, 255, 0, 0.5);
+    }
+}
