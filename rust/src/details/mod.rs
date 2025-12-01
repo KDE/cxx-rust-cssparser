@@ -97,17 +97,17 @@ impl std::fmt::Display for ParseError {
 }
 
 impl ParseError {
-    fn from_cssparser_error<'i, E>(value: cssparser::ParseError<'i, E>, file: String) -> Self
+    pub(crate) fn from_cssparser_error<'i, E>(value: &cssparser::ParseError<'i, E>, file: String) -> Self
         where E: ToParseError,
     {
-        match value.kind {
+        match &value.kind {
             cssparser::ParseErrorKind::Basic(basic_error) => basic_error.to_parse_error(file, value.location),
             cssparser::ParseErrorKind::Custom(custom_error) => custom_error.to_parse_error(file, value.location),
         }
     }
 }
 
-trait ToParseError {
+pub(crate) trait ToParseError {
     fn to_parse_error(&self, file: String, location: cssparser::SourceLocation) -> ParseError;
 }
 
