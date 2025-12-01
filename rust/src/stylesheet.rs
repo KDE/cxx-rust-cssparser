@@ -75,11 +75,7 @@ impl StyleSheet {
                     }
                 }
                 Err(error) => {
-                    if let cssparser::ParseErrorKind::Custom(parse_error) = error.0.kind {
-                        errors.push(parse_error)
-                    } else {
-                        panic!("Unexpected error type: {:#?}", error);
-                    }
+                    errors.push(ParseError::from_cssparser_error(&error.0, origin.to_string()));
                 }
             }
         }
