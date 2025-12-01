@@ -111,6 +111,12 @@ trait ToParseError {
     fn to_parse_error(&self, file: String, location: cssparser::SourceLocation) -> ParseError;
 }
 
+impl ToParseError for ParseError {
+    fn to_parse_error(&self, _file: String, _location: cssparser::SourceLocation) -> ParseError {
+        self.clone()
+    }
+}
+
 impl ToParseError for cssparser::BasicParseErrorKind<'_> {
     fn to_parse_error(&self, file: String, location: cssparser::SourceLocation) -> ParseError {
         let location = SourceLocation::from_file_location(file, location);
