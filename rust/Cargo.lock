@@ -126,7 +126,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "cxx-rust-cssparser"
+name = "cxx-rust-cssparser-impl"
 version = "1.0.0"
 dependencies = [
  "cssparser",

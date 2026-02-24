@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2025 Arjen Hiemstra <ahiemstra@heimr.nl>
 
 [package]
-name = "cxx-rust-cssparser"
+name = "cxx-rust-cssparser-impl"
 version = "1.0.0"
 edition = "2021"
 

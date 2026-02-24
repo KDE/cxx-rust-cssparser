@@ -3,7 +3,7 @@
 
 use std::{path::PathBuf, sync::Arc};
 
-use cxx_rust_cssparser::{
+use cxx_rust_cssparser_impl::{
     property::{add_property_definition, property_definition, Property, PropertyDefinition},
     selector::*,
     stylerule::StyleRule,
