@@ -1,64 +1,33 @@
 # SPDX-License-Identifier: BSD-2-Clause
 # SPDX-FileCopyrightText: 2025 Arjen Hiemstra <ahiemstra@heimr.nl>
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(CARGO_CMD cargo build --verbose)
-    set(TARGET_DIR "debug")
-else()
-    set(CARGO_CMD cargo build --release --verbose)
-    set(TARGET_DIR "release")
-endif()
+corrosion_import_crate(MANIFEST_PATH Cargo.toml)
 
-set(CARGO_BUILD_TEST_CMD "")
-if (BUILD_TESTING)
-    set(CARGO_BUILD_TEST_CMD cargo test --no-run)
-endif()
-
-set(RUST_LIB "${CMAKE_CURRENT_BINARY_DIR}/${TARGET_DIR}/libcxx_rust_cssparser.a")
-set(RUST_CXX "${CMAKE_CURRENT_BINARY_DIR}/cxx-rust-cssparser-impl.cpp")
-set(RUST_HEADER "${CMAKE_CURRENT_BINARY_DIR}/cxx-rust-cssparser-impl.h")
-
-add_library(cxx-rust-cssparser-impl STATIC ${RUST_CXX})
-add_custom_command(
-    OUTPUT ${RUST_LIB} ${RUST_CXX}
-    COMMAND CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR} RUSTFLAGS="${RUST_FLAGS}" ${CARGO_CMD}
-    COMMAND CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR} RUSTFLAGS="${RUST_FLAGS}" ${CARGO_BUILD_TEST_CMD}
-    COMMAND cp ${CMAKE_CURRENT_BINARY_DIR}/cxxbridge/cxx-rust-cssparser/src/ffi.rs.cc ${RUST_CXX}
-    COMMAND cp ${CMAKE_CURRENT_BINARY_DIR}/cxxbridge/cxx-rust-cssparser/src/ffi.rs.h ${CMAKE_CURRENT_BINARY_DIR}/cxx-rust-cssparser-impl.h
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-
-    DEPENDS
-    build.rs
-    Cargo.toml
-
-    src/ffi.rs
-    src/lib.rs
-    src/property.rs
-    src/selector.rs
-    src/stylerule.rs
-    src/stylesheet.rs
-    src/value.rs
-
-    src/details/identifier.rs
-    src/details/mod.rs
-    src/details/rulesparser.rs
-    src/details/selectorparser.rs
-
-    src/details/property/definitionparser.rs
-    src/details/property/function.rs
-    src/details/property/mod.rs
-    src/details/property/syntax.rs
-    src/details/property/value.rs
+corrosion_add_cxxbridge(cxx-rust-cssparser-impl-bridge
+    CRATE cxx_rust_cssparser_impl
+    FILES ffi.rs
 )
 
-set_target_properties(cxx-rust-cssparser-impl PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
-target_include_directories(cxx-rust-cssparser-impl PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+# Ensure we build the bridge target with PIC otherwise linking fails
+set_target_properties(cxx-rust-cssparser-impl-bridge PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
-target_link_libraries(cxx-rust-cssparser-impl pthread dl ${RUST_LIB})
+# Make the generated header file available at a more easily accessed location
+add_custom_command(
+    TARGET cxx-rust-cssparser-impl-bridge
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_BINARY_DIR}/corrosion_generated/cxxbridge/cxx-rust-cssparser-impl-bridge/include/cxx-rust-cssparser-impl-bridge/ffi.h
+        ${CMAKE_CURRENT_BINARY_DIR}/ffi.h
+    BYPRODUCTS ffi.h
+)
+
+corrosion_install(TARGETS cxx_rust_cssparser_impl EXPORT cxx-rust-cssparserTargets)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ffi.h DESTINATION ${KDE_INSTALL_INCLUDEDIR}/cxx-rust-cssparser)
 
 if (BUILD_TESTING)
-    add_test(NAME rust COMMAND cargo test)
-    set_tests_properties(rust PROPERTIES ENVIRONMENT "CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    add_test(
+        NAME cargo-test
+        COMMAND $<TARGET_FILE:Rust::Cargo> test --manifest-path=${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    )
 endif()
-
-install(FILES ${RUST_HEADER} DESTINATION ${KDE_INSTALL_INCLUDEDIR}/cxx-rust-cssparser)

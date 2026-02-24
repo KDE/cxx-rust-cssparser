@@ -15,10 +15,12 @@ ecm_generate_export_header(cxx-rust-cssparser
     EXCLUDE_DEPRECATED_BEFORE_AND_AT ${EXCLUDE_DEPRECATED_BEFORE_AND_AT}
 )
 
-target_link_libraries(cxx-rust-cssparser PRIVATE cxx-rust-cssparser-impl)
+target_link_libraries(cxx-rust-cssparser PRIVATE cxx-rust-cssparser-impl-bridge)
 
 target_include_directories(cxx-rust-cssparser PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
+    # Using the C++ library requires the generated header, so make sure it can
+    # be found when linking to the library target.
     "$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/rust>"
     "$<INSTALL_INTERFACE:${KDE_INSTALL_INCLUDEDIR}/cxx-rust-cssparser>"
 )

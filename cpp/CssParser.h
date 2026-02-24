@@ -12,7 +12,7 @@
 #include <vector>
 #include <cstdint>
 
-#include "cxx-rust-cssparser-impl.h"
+#include "ffi.h"
 
 #include "cssparser_export.h"
 
