@@ -3,123 +3,52 @@
 
 #include "CssParser.h"
 
-#include <filesystem>
 #include <iostream>
 #include <fstream>
-#include <format>
+
+#include "cxx-rust-cssparser-impl-bridge/ffi.h"
 
 using namespace std::string_literals;
 
 namespace cssparser
 {
 
-Color::Color convert_color(const ::rust::Box<rust::Color> &color)
+Property::Property(const std::string &name, const std::vector<Value> &values)
+    : m_name(name)
+    , m_values(values)
 {
-    Color::Color result;
-    result.type = color->color_type();
-    switch (color->color_type()) {
-    case rust::ColorType::Empty:
-        break;
-    case rust::ColorType::Rgba:
-        result.data = color->to_rgba();
-        break;
-    case rust::ColorType::Custom: {
-        auto custom = color->to_custom();
+}
 
-        std::vector<std::string> arguments;
-        std::ranges::transform(custom.arguments, std::back_inserter(arguments), [](auto arg) {
-            return std::string(arg);
-        });
-
-        result.data = Color::CustomColor {
-            .source = std::string(custom.source),
-            .arguments = arguments,
-        };
-
-        break;
+Property Property::fromRust(const rust::Property &rustData)
+{
+    std::vector<Value> values;
+    for (const auto &rustValue : rustData.values()) {
+        values.push_back(Value::fromRust(rustValue));
     }
-    case rust::ColorType::Modified: {
-        auto modified = color->to_modified();
 
-        auto result_color = Color::ModifiedColor{};
-        result_color.color = std::make_shared<Color::Color>(convert_color(modified.color));
-        result_color.operation = modified.operation_type();
+    return Property{std::string(rustData.name()), values};
+}
 
-        switch (result_color.operation) {
-            case rust::ColorOperationType::Add:
-            case rust::ColorOperationType::Subtract:
-            case rust::ColorOperationType::Multiply:
-                result_color.data = std::make_shared<Color::Color>(convert_color(modified.color_value()));
-                break;
-            case rust::ColorOperationType::Set: {
-                auto set_data = modified.set_values();
-                auto result_data = Color::SetOperationData{};
-                if (set_data.r < 0) {
-                    result_data.r = std::nullopt;
-                } else {
-                    result_data.r = uint8_t(set_data.r);
-                }
-                if (set_data.g < 0) {
-                    result_data.g = std::nullopt;
-                } else {
-                    result_data.g = uint8_t(set_data.g);
-                }
-                if (set_data.b < 0) {
-                    result_data.b = std::nullopt;
-                } else {
-                    result_data.b = uint8_t(set_data.b);
-                }
-                if (set_data.a < 0) {
-                    result_data.a = std::nullopt;
-                } else {
-                    result_data.a = uint8_t(set_data.a);
-                }
-                result_color.data = result_data;
-                break;
-            }
-            case rust::ColorOperationType::Mix: {
-                auto mix_data = modified.mix_values();
-                result_color.data = Color::MixOperationData{
-                    .other = std::make_shared<Color::Color>(convert_color(mix_data.other)),
-                    .amount = mix_data.amount,
-                };
-                break;
-            }
-        }
+Rule::Rule()
+{
+}
 
-        result.data = result_color;
-        break;
-    }
+Rule::Rule(const Selector &selector, const std::vector<Property> &properties)
+    : m_selector(selector)
+    , m_properties(properties)
+{
+}
+
+Rule Rule::fromRust(const rust::StyleRule &rule)
+{
+    auto result = Rule{};
+    result.m_selector = Selector::fromRust(rule.selector());
+
+    for (const auto &property : rule.properties()) {
+        result.m_properties.push_back(Property::fromRust(property));
     }
 
     return result;
-}
-
-Value convert_value(const rust::Value &input)
-{
-    switch (input.value_type()) {
-        case rust::ValueType::Empty:
-            return Value(std::nullopt);
-        case rust::ValueType::Dimension: {
-            auto dim = input.to_dimension();
-            return Value(Dimension{.value = dim.value, .unit = dim.unit});
-        }
-        case rust::ValueType::String:
-            return Value(std::string(input.to_string()));
-        case rust::ValueType::Color: {
-            return Value(convert_color(input.to_color()));
-        }
-        case rust::ValueType::Integer: {
-            return Value(input.to_integer());
-        }
-        case rust::ValueType::Url: {
-            return Value(Url{ .data = std::string(input.to_url())});
-        }
-        default:
-            break;
-    }
-
-    return Value(std::nullopt);
 }
 
 struct StyleSheet::Private
@@ -127,7 +56,7 @@ struct StyleSheet::Private
     void update();
 
     rust::StyleSheet *stylesheet;
-    std::vector<CssRule> rules;
+    std::vector<Rule> rules;
     std::vector<Error> errors;
 };
 
@@ -140,22 +69,22 @@ StyleSheet::StyleSheet()
 
 StyleSheet::~StyleSheet() = default;
 
-std::vector<CssRule> StyleSheet::rules() const
+std::span<const Rule> StyleSheet::rules() const
 {
-    return d->rules;
+    return std::span<const Rule>(d->rules.cbegin(), d->rules.cend());
 }
 
-std::vector<Error> StyleSheet::errors() const
+std::span<const Error> StyleSheet::errors() const
 {
-    return d->errors;
+    return std::span<const Error>(d->errors.cbegin(), d->errors.cend());
 }
 
-void StyleSheet::set_root_path(const std::filesystem::path &path)
+void StyleSheet::setRootPath(const std::filesystem::path &path)
 {
     d->stylesheet->set_root_path(path.string());
 }
 
-void StyleSheet::parse_file(const std::string &file)
+void StyleSheet::parseFile(const std::string &file)
 {
     try {
         d->stylesheet->parse_file(file);
@@ -173,7 +102,7 @@ void StyleSheet::parse_file(const std::string &file)
     d->update();
 }
 
-void StyleSheet::parse_string(const std::string &source, const std::string &origin)
+void StyleSheet::parseString(const std::string &source, const std::string &origin)
 {
     d->stylesheet->parse_string(source, origin);
     d->update();
@@ -184,35 +113,7 @@ void StyleSheet::Private::update()
     rules.clear();
 
     for (const auto &entry : stylesheet->rules()) {
-        CssRule rule;
-
-        const auto &properties = entry.properties();
-        for (const auto &property : properties) {
-            std::vector<Value> vals;
-            const auto values = property.values();
-            for (const auto &value : values) {
-                vals.push_back(convert_value(value));
-            }
-            rule.properties.emplace_back(std::string(property.name()), vals);
-        }
-
-        Selector s;
-        const auto &parts = entry.selector().parts();
-        for (const auto &part : parts) {
-            if (part.kind() == rust::SelectorKind::Attribute) {
-                auto new_part = SelectorPart{SelectorKind::Attribute, std::nullopt};
-                new_part.attributeMatch = AttributeMatch {
-                    .name = std::string(part.attribute_name()),
-                    .op = part.attribute_operator(),
-                    .value = convert_value(part.attribute_value()),
-                };
-                s.parts.push_back(new_part);
-            } else {
-                s.parts.emplace_back(part.kind(), convert_value(part.value()));
-            }
-        }
-        rule.selector = s;
-
+        auto rule = Rule::fromRust(entry);
         rules.push_back(rule);
     }
 

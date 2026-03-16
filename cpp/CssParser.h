@@ -4,13 +4,6 @@
 #pragma once
 
 #include <filesystem>
-#include <format>
-#include <memory>
-#include <optional>
-#include <string>
-#include <variant>
-#include <vector>
-#include <cstdint>
 
 #include "Selector.h"
 
@@ -18,34 +11,63 @@
 
 namespace cssparser
 {
+namespace rust
 {
+struct Property;
+struct StyleRule;
 }
 
-struct CSSPARSER_EXPORT Property {
-    Property(const std::string &_name, const std::vector<Value> &_values)
-        : name(_name)
-        , values(_values)
+class CSSPARSER_EXPORT Property
+{
+public:
+    Property(const std::string &name, const std::vector<Value> &values);
+    inline std::string name() const
     {
+        return m_name;
     }
-
+    inline std::span<const Value> values() const
+    {
+        return std::span<const Value>(m_values.cbegin(), m_values.cend());
+    }
     template <typename T>
     inline T value(std::size_t index = 0) const
     {
-        return std::get<T>(values.at(index));
+        return m_values.at(index).get<T>();
     }
 
     inline Value value(std::size_t index = 0) const
     {
-        return values.at(index);
+        return m_values.at(index);
     }
 
-    std::string name;
-    std::vector<Value> values;
+    // Internal. Convert from a rust Property to a C++ Property.
+    static Property fromRust(const rust::Property &rustData);
+
+private:
+    std::string m_name;
+    std::vector<Value> m_values;
 };
 
-struct CSSPARSER_EXPORT CssRule {
-    Selector selector;
-    std::vector<Property> properties;
+class CSSPARSER_EXPORT Rule
+{
+public:
+    Rule();
+    Rule(const Selector &selector, const std::vector<Property> &properties);
+    inline Selector selector() const
+    {
+        return m_selector;
+    }
+    inline std::span<const Property> properties() const
+    {
+        return std::span<const Property>(m_properties.cbegin(), m_properties.cend());
+    }
+
+    // Internal. Convert from a rust StyleRule to a C++ Rule.
+    static Rule fromRust(const rust::StyleRule &rustData);
+
+private:
+    Selector m_selector;
+    std::vector<Property> m_properties;
 };
 
 struct CSSPARSER_EXPORT Error {
@@ -61,13 +83,11 @@ public:
     StyleSheet();
     ~StyleSheet();
 
-    std::vector<CssRule> rules() const;
-    std::vector<Error> errors() const;
-
-    void set_root_path(const std::filesystem::path &path);
-
-    void parse_file(const std::string &file_name);
-    void parse_string(const std::string &data, const std::string &origin);
+    std::span<const Rule> rules() const;
+    std::span<const Error> errors() const;
+    void setRootPath(const std::filesystem::path &path);
+    void parseFile(const std::string &file_name);
+    void parseString(const std::string &data, const std::string &origin);
 
 private:
     struct Private;
