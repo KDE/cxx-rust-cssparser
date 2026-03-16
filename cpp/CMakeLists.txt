@@ -5,7 +5,6 @@ add_library(cxx-rust-cssparser)
 
 target_sources(cxx-rust-cssparser PRIVATE
     CssParser.cpp
-    CssParser.h
 )
 
 ecm_generate_export_header(cxx-rust-cssparser
@@ -13,6 +12,14 @@ ecm_generate_export_header(cxx-rust-cssparser
     VERSION ${PROJECT_VERSION}
     DEPRECATED_BASE_VERSION 0
     EXCLUDE_DEPRECATED_BEFORE_AND_AT ${EXCLUDE_DEPRECATED_BEFORE_AND_AT}
+)
+
+target_sources(cxx-rust-cssparser PUBLIC
+    FILE_SET HEADERS
+    BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}
+    FILES
+    CssParser.h
+    ${CMAKE_CURRENT_BINARY_DIR}/cssparser_export.h
 )
 
 target_link_libraries(cxx-rust-cssparser PRIVATE cxx-rust-cssparser-impl-bridge)
@@ -39,9 +46,8 @@ set_target_properties(cxx-rust-cssparser PROPERTIES
     SOVERSION ${PROJECT_VERSION_MAJOR}
 )
 
-install(TARGETS cxx-rust-cssparser EXPORT cxx-rust-cssparserTargets ${KDE_INSTALL_DEFAULT_ARGS})
-install(FILES
-    CssParser.h
-    ${CMAKE_CURRENT_BINARY_DIR}/cssparser_export.h
-    DESTINATION ${KDE_INSTALL_INCLUDEDIR}/cxx-rust-cssparser
+install(TARGETS cxx-rust-cssparser
+    EXPORT cxx-rust-cssparserTargets
+    FILE_SET HEADERS DESTINATION ${KDE_INSTALL_INCLUDEDIR}/cxx-rust-cssparser
+    ${KDE_INSTALL_DEFAULT_ARGS}
 )
