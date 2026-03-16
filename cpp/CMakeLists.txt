@@ -17,6 +17,9 @@ ecm_generate_export_header(cxx-rust-cssparser
 
 target_link_libraries(cxx-rust-cssparser PRIVATE cxx-rust-cssparser-impl-bridge)
 
+# Ensure the copied ffi.h is available before compiling this target
+add_dependencies(cxx-rust-cssparser cxx-rust-cssparser-copy-ffi-h)
+
 target_include_directories(cxx-rust-cssparser PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
     # Using the C++ library requires the generated header, so make sure it can
