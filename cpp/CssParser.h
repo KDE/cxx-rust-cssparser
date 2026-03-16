@@ -21,41 +21,7 @@ namespace cssparser
 {
 }
 
-using Unit = rust::Unit;
-
-struct Dimension {
-    float value;
-    Unit unit;
-
-    inline operator float() const {
-        return value;
-    }
-
-    inline std::string to_string() const {
-        switch (unit) {
-        case Unit::Px:
-            return std::format("{} px", value);
-        case Unit::Em:
-            return std::format("{} em", value);
-        case Unit::Rem:
-            return std::format("{} rem", value);
-        case Unit::Pt:
-            return std::format("{} pt", value);
-        case Unit::Percent:
-            return std::format("{} %", value);
-        default:
-            return std::format("{} (Unknown unit)", value);
-        }
-    }
-};
-
-struct Url {
-    std::string data;
-};
-
 using AttributeOperator = rust::AttributeOperator;
-
-using Value = std::variant<std::nullopt_t, std::string, int, Color::Color, Dimension, Url>;
 
 struct AttributeMatch {
     std::string name;

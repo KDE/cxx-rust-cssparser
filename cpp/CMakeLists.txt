@@ -6,6 +6,7 @@ add_library(cxx-rust-cssparser)
 target_sources(cxx-rust-cssparser PRIVATE
     CssParser.cpp
     Color.cpp
+    Value.cpp
 )
 
 ecm_generate_export_header(cxx-rust-cssparser
@@ -21,6 +22,7 @@ target_sources(cxx-rust-cssparser PUBLIC
     FILES
     CssParser.h
     Color.h
+    Value.h
     ${CMAKE_CURRENT_BINARY_DIR}/cssparser_export.h
 )
 
