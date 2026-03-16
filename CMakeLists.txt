@@ -29,8 +29,6 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_AUTOMOC FALSE)
 set(CMAKE_AUTORCC FALSE)
 
-set(CMAKE_CXX_VISIBILITY_PRESET "default")
-
 kde_enable_exceptions()
 
 add_subdirectory(rust)
