@@ -20,6 +20,7 @@ include(KDEInstallDirs)
 include(KDECompilerSettings NO_POLICY_SCOPE)
 include(KDECMakeSettings)
 include(KDEGitCommitHooks)
+include(KDEClangFormat)
 include(ECMGenerateExportHeader)
 include(ECMSetupVersion)
 include(ECMGenerateQDoc)
@@ -65,3 +66,5 @@ install(EXPORT cxx-rust-cssparserTargets
 )
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
+
+kde_configure_git_pre_commit_hook(CHECKS CLANG_FORMAT)
