@@ -12,59 +12,68 @@
 using namespace cssparser;
 using namespace std::string_literals;
 
-std::string kind_to_string(SelectorKind kind)
+std::string kind_to_string(SelectorPart::Kind kind)
 {
     switch (kind) {
-        case SelectorKind::Unknown: return "Unknown"s;
-        case SelectorKind::AnyElement: return "AnyElement"s;
-        case SelectorKind::Type: return "Type"s;
-        case SelectorKind::Class: return "Class"s;
-        case SelectorKind::Id: return "Id"s;
-        case SelectorKind::Attribute: return "Attribute"s;
-        case SelectorKind::RelativeParent: return "RelativeParent"s;
-        case SelectorKind::PseudoClass: return "PseudoClass"s;
-        case SelectorKind::DocumentRoot: return "DocumentRoot"s;
-        case SelectorKind::DescendantCombinator: return "DescendantCombinator";
-        case SelectorKind::ChildCombinator: return "ChildCombinator";
+    case SelectorPart::Kind::Unknown:
+        return "Unknown"s;
+    case SelectorPart::Kind::AnyElement:
+        return "AnyElement"s;
+    case SelectorPart::Kind::Type:
+        return "Type"s;
+    case SelectorPart::Kind::Class:
+        return "Class"s;
+    case SelectorPart::Kind::Id:
+        return "Id"s;
+    case SelectorPart::Kind::Attribute:
+        return "Attribute"s;
+    case SelectorPart::Kind::RelativeParent:
+        return "RelativeParent"s;
+    case SelectorPart::Kind::PseudoClass:
+        return "PseudoClass"s;
+    case SelectorPart::Kind::DocumentRoot:
+        return "DocumentRoot"s;
+    case SelectorPart::Kind::DescendantCombinator:
+        return "DescendantCombinator";
+    case SelectorPart::Kind::ChildCombinator:
+        return "ChildCombinator";
+    default:
+        return "Unkown"s;
     }
-
-    return "Unknown"s;
 }
 
 std::string value_to_string(const Value &value)
 {
-    return std::visit([](auto &&arg) {
-        using T = std::decay_t<decltype(arg)>;
-        if constexpr (std::is_same_v<T, std::nullopt_t>) {
-            return "Empty"s;
-        } else if constexpr (std::is_same_v<T, std::string>) {
-            return arg;
-        } else if constexpr (std::is_same_v<T, float>) {
-            return std::to_string(arg);
-        } else if constexpr (std::is_same_v<T, int>) {
-            return std::to_string(arg);
-        } else if constexpr (std::is_same_v<T, Color::Color>) {
-            return std::string(arg.to_string());
-        } else if constexpr (std::is_same_v<T, Dimension>) {
-            return std::string(arg.to_string());
-        } else if constexpr (std::is_same_v<T, Url>) {
-            return arg.data;
-        }
-    }, value);
+    switch (value.type()) {
+    case Value::Type::Empty:
+        return "(Empty)"s;
+    case Value::Type::Dimension:
+        return value.get<Dimension>().toString();
+    case Value::Type::String:
+    case Value::Type::Image:
+    case Value::Type::Url:
+        return value.get<std::string>();
+    case Value::Type::Color:
+        return value.get<Color::Color>().toString();
+    case Value::Type::Integer:
+        return std::to_string(value.get<int>());
+    }
+
+    return std::string{};
 }
 
 std::string selector_part_to_string(const SelectorPart &part)
 {
-    auto kind = kind_to_string(part.kind);
-    switch (part.kind) {
-        case SelectorKind::Unknown:
-        case SelectorKind::AnyElement:
-        case SelectorKind::DocumentRoot:
-        case SelectorKind::DescendantCombinator:
-        case SelectorKind::ChildCombinator:
-            return kind;
-        default:
-            return kind + ": " + value_to_string(part.value);
+    auto kind = kind_to_string(part.kind());
+    switch (part.kind()) {
+    case SelectorPart::Kind::Unknown:
+    case SelectorPart::Kind::AnyElement:
+    case SelectorPart::Kind::DocumentRoot:
+    case SelectorPart::Kind::DescendantCombinator:
+    case SelectorPart::Kind::ChildCombinator:
+        return kind;
+    default:
+        return kind + ": " + value_to_string(part.value());
     }
 }
 
@@ -73,18 +82,23 @@ int main(int argc, char **argv)
     std::vector<std::filesystem::path> prepend_files;
     std::vector<std::filesystem::path> append_files;
 
-    int show_help = 0;
+    bool show_help = false;
+    bool verbose = false;
 
     auto options = std::array{
-        option { .name = "prepend", .has_arg = required_argument, .flag = nullptr, .val = 'p' },
-        option { .name = "append", .has_arg = required_argument, .flag = nullptr, .val = 'a' },
-        option { .name = "help", .has_arg = no_argument, .flag = nullptr, .val = 'h' },
+        option{.name = "verbose", .has_arg = no_argument, .flag = nullptr, .val = 'v'},
+        option{.name = "prepend", .has_arg = required_argument, .flag = nullptr, .val = 'p'},
+        option{.name = "append", .has_arg = required_argument, .flag = nullptr, .val = 'a'},
+        option{.name = "help", .has_arg = no_argument, .flag = nullptr, .val = 'h'},
     };
 
     int c = 0;
     int i = 0;
     while ((c = getopt_long(argc, argv, "", options.data(), &i)) != -1) {
         switch (c) {
+        case 'v':
+            verbose = true;
+            break;
         case 'p':
             prepend_files.push_back(std::string(optarg));
             break;
@@ -92,22 +106,23 @@ int main(int argc, char **argv)
             append_files.push_back(std::string(optarg));
             break;
         case 'h':
-            show_help = 1;
+            show_help = true;
             break;
         default:
             std::cout << "Unrecognized option: " << c;
-            show_help = 1;
+            show_help = true;
         }
     }
 
     if (optind >= argc && show_help == 0) {
         std::cerr << "A file path is required!" << std::endl;
-        show_help = 1;
+        show_help = true;
     }
 
-    if (show_help != 0) {
+    if (show_help) {
         std::cout << "Usage: " << argv[0] << "[options] <filename>\n\n";
         std::cout << "Options:\n";
+        std::cout << "--verbose Print full structure of parsed data.\n";
         std::cout << "--prepend <filename> Add and parse <filename> before parsing the main file.\n";
         std::cout << "--append <filename> Add and parse <filename> after parsing the main file.\n";
         exit(1);
@@ -119,24 +134,24 @@ int main(int argc, char **argv)
 
     for (auto file : prepend_files) {
         if (file.has_parent_path()) {
-            sheet.set_root_path(file.parent_path());
-            sheet.parse_file(file.filename());
+            sheet.setRootPath(file.parent_path());
+            sheet.parseFile(file.filename());
         } else{
-            sheet.set_root_path(path.parent_path());
-            sheet.parse_file(file);
+            sheet.setRootPath(path.parent_path());
+            sheet.parseFile(file);
         }
     }
 
-    sheet.set_root_path(path.parent_path());
-    sheet.parse_file(path.filename());
+    sheet.setRootPath(path.parent_path());
+    sheet.parseFile(path.filename());
 
     for (auto file : append_files) {
         if (file.has_parent_path()) {
-            sheet.set_root_path(file.parent_path());
-            sheet.parse_file(file.filename());
+            sheet.setRootPath(file.parent_path());
+            sheet.parseFile(file.filename());
         } else{
-            sheet.set_root_path(path.parent_path());
-            sheet.parse_file(file);
+            sheet.setRootPath(path.parent_path());
+            sheet.parseFile(file);
         }
     }
 
@@ -155,24 +170,47 @@ int main(int argc, char **argv)
     std::cout << result.size() << " results:" << std::endl;
 
     for (auto entry : result) {
-        std::cout << "StyleRule {\n";
-        std::cout << "  selector:\n";
-        for (auto part : entry.selector.parts) {
-            std::cout << "    " << selector_part_to_string(part) << "\n";
-        }
-        std::cout << "\n";
+        std::cout << "Rule {\n";
 
-        for (auto property : entry.properties) {
-            // std::cout << "  Property(";
-            if (property.values.size() == 1) {
-                std::cout << "  " << property.name << ": " << value_to_string(property.values.at(0)) << "\n";
-            } else {
-                std::cout << "\n";
-                std::cout << "  " << property.name << ":\n";
-                for (auto value : property.values) {
-                    std::cout << "    " << value_to_string(value) << "\n";
+        if (!verbose) {
+            std::cout << "  selector:\n";
+            const auto selector = entry.selector();
+            for (auto part : selector.parts()) {
+                std::cout << "    " << selector_part_to_string(part) << "\n";
+            }
+            std::cout << "\n";
+
+            for (auto property : entry.properties()) {
+                if (property.values().size() == 1) {
+                    std::cout << "  " << property.name() << ": " << value_to_string(property.values().front()) << "\n";
+                } else {
+                    std::cout << "\n";
+                    std::cout << "  " << property.name() << ":\n";
+                    for (auto value : property.values()) {
+                        std::cout << "    " << value_to_string(value) << "\n";
+                    }
                 }
-                // std::cout << "  )\n";
+            }
+        } else {
+            std::cout << "  Selector {\n";
+            const auto selector = entry.selector();
+            for (auto part : selector.parts()) {
+                std::cout << "    " << part.toString() << "\n";
+            }
+            std::cout << "  }\n\n";
+
+            for (auto property : entry.properties()) {
+                if (property.values().size() == 1) {
+                    std::cout << "  Property(name: " << property.name() << ", value: " << property.values().front().toString() << "\n";
+                } else {
+                    std::cout << "  Property {\n";
+                    std::cout << "    name: " << property.name() << "\n";
+                    std::cout << "    values:\n";
+                    for (const auto &value : property.values()) {
+                        std::cout << "    - " << value.toString() << "\n";
+                    }
+                    std::cout << "  }\n";
+                }
             }
         }
 
