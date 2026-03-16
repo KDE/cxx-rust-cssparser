@@ -51,3 +51,5 @@ install(TARGETS cxx-rust-cssparser
     FILE_SET HEADERS DESTINATION ${KDE_INSTALL_INCLUDEDIR}/cxx-rust-cssparser
     ${KDE_INSTALL_DEFAULT_ARGS}
 )
+
+ecm_generate_qdoc(cxx-rust-cssparser ../doc/cxx-rust-cssparser.qdocconf)
