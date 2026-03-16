@@ -12,7 +12,7 @@
 #include <vector>
 #include <cstdint>
 
-#include "ffi.h"
+#include "Selector.h"
 
 #include "cssparser_export.h"
 
@@ -20,37 +20,6 @@ namespace cssparser
 {
 {
 }
-
-using AttributeOperator = rust::AttributeOperator;
-
-struct AttributeMatch {
-    std::string name;
-    AttributeOperator op;
-    Value value;
-};
-
-using SelectorKind = rust::SelectorKind;
-
-struct CSSPARSER_EXPORT SelectorPart {
-    SelectorPart(SelectorKind _kind, const Value &_value)
-        : kind(_kind)
-        , value(_value)
-    {
-    }
-
-    inline bool is_combinator() const
-    {
-        return kind == SelectorKind::DescendantCombinator || kind == SelectorKind::ChildCombinator;
-    }
-
-    SelectorKind kind;
-    Value value;
-    std::optional<AttributeMatch> attributeMatch;
-};
-
-struct CSSPARSER_EXPORT Selector {
-    std::vector<SelectorPart> parts;
-};
 
 struct CSSPARSER_EXPORT Property {
     Property(const std::string &_name, const std::vector<Value> &_values)
