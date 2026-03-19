@@ -10,8 +10,7 @@
 
 using namespace std::string_literals;
 
-namespace cssparser
-{
+using namespace cssparser;
 
 Property::Property(const std::string &name, const std::vector<Value> &values)
     : m_name(name)
@@ -58,6 +57,7 @@ struct StyleSheet::Private
     rust::StyleSheet *stylesheet;
     std::vector<Rule> rules;
     std::vector<Error> errors;
+    std::vector<std::filesystem::path> parsedFiles;
 };
 
 StyleSheet::StyleSheet()
@@ -77,6 +77,11 @@ std::span<const Rule> StyleSheet::rules() const
 std::span<const Error> StyleSheet::errors() const
 {
     return std::span<const Error>(d->errors.cbegin(), d->errors.cend());
+}
+
+std::span<const std::filesystem::path> StyleSheet::parsedFiles() const
+{
+    return std::span<const std::filesystem::path>(d->parsedFiles.cbegin(), d->parsedFiles.cend());
 }
 
 void StyleSheet::setRootPath(const std::filesystem::path &path)
@@ -125,6 +130,9 @@ void StyleSheet::Private::update()
             .message = std::string(entry.message),
         });
     }
-}
 
+    parsedFiles.clear();
+    for (const auto &entry : stylesheet->parsed_files()) {
+        parsedFiles.push_back(std::filesystem::path(std::string(entry)));
+    }
 }

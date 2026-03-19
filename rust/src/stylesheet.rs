@@ -5,6 +5,7 @@ use std::sync::Arc;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
+use std::collections::HashSet;
 
 use crate::details::{ParseError, ParseErrorKind, SourceLocation};
 use crate::details::rulesparser::*;
@@ -16,6 +17,7 @@ use crate::stylerule::*;
 pub struct StyleSheet {
     pub rules: Vec<StyleRule>,
     pub errors: Vec<ParseError>,
+    pub parsed_files: HashSet<String>,
 
     pub root_path: PathBuf,
 }
@@ -25,6 +27,7 @@ impl StyleSheet {
         StyleSheet {
             rules: Vec::new(),
             errors: Vec::new(),
+            parsed_files: HashSet::new(),
             root_path: PathBuf::new(),
         }
     }
@@ -82,6 +85,7 @@ impl StyleSheet {
 
         self.rules.extend(rules);
         self.errors.extend(errors);
+        self.parsed_files.insert(origin.to_string());
 
         Ok(())
     }

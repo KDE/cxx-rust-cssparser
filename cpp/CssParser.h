@@ -148,6 +148,12 @@ public:
      */
     std::span<const Error> errors() const;
     /*!
+     * A view of the list of files that were parsed by this StyleSheet.
+     *
+     * This includes files that were imported using \c{@import} in CSS.
+     */
+    std::span<const std::filesystem::path> parsedFiles() const;
+    /*!
      * Set the root path of this StyleSheet to \a path.
      *
      * The root path determines relative to what path relative imports are

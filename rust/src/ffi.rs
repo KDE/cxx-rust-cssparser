@@ -176,6 +176,7 @@ mod ffi {
         type StyleSheet;
         fn rules(self: &StyleSheet) -> Vec<StyleRule>;
         fn errors(self: &StyleSheet) -> Vec<StyleSheetError>;
+        fn parsed_files(self: &StyleSheet) -> Vec<String>;
         fn set_root_path(self: &mut StyleSheet, root_path: &str);
         fn parse_file(self: &mut StyleSheet, file_name: &str) -> Result<()>;
         fn parse_string(self: &mut StyleSheet, data: &str, origin: &str) -> Result<()>;
@@ -478,6 +479,10 @@ impl StyleSheet {
             })
         }
         result
+    }
+
+    fn parsed_files(&self) -> Vec<String> {
+        self.parsed_files.iter().cloned().collect()
     }
 
     fn set_root_path(&mut self, path: &str) {
