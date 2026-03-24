@@ -294,7 +294,7 @@ fn complex() {
             name: String::from("background-image"),
             definition: property_definition("background-image").unwrap(),
             values: vec![
-                Value::new_url("background.svg"),
+                Value::new_url(path.parent().unwrap().join("background.svg").to_string_lossy().as_ref()),
             ]
         }
     ];
