@@ -21,9 +21,9 @@ fn setup() {
 
 #[test]
 fn minimal() {
-    let mut stylesheet = StyleSheet::new();
+    let mut stylesheet = StyleSheet::new(PathBuf::new());
 
-    let result = stylesheet.parse_string("test { }", "Test Input");
+    let result = stylesheet.parse_string("test { }");
     assert!(result.is_ok());
 
     assert_eq!(stylesheet.rules, Vec::from([
@@ -40,10 +40,10 @@ fn minimal() {
 fn property_registration() {
     setup();
 
-    let mut stylesheet = StyleSheet::new();
+    let mut stylesheet = StyleSheet::new(PathBuf::new());
     let property_definition = property_definition("test").unwrap();
 
-    let result = stylesheet.parse_string("example { test: red; }", "Test Input");
+    let result = stylesheet.parse_string("example { test: red; }");
     assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap().to_string());
 
     assert_eq!(
@@ -71,7 +71,7 @@ fn property_registration() {
 fn custom_properties() {
     setup();
 
-    let mut stylesheet = StyleSheet::new();
+    let mut stylesheet = StyleSheet::new(PathBuf::new());
 
     let result = stylesheet.parse_string(
         ":root {
@@ -81,7 +81,7 @@ fn custom_properties() {
 
         example {
             test: var(--test-color);
-        }", "Test Input");
+        }");
     assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap().to_string());
 
     let color_definition = property_definition("--test-color").unwrap();
@@ -121,7 +121,7 @@ fn custom_properties() {
 fn nested_block() {
     setup();
 
-    let mut stylesheet = StyleSheet::new();
+    let mut stylesheet = StyleSheet::new(PathBuf::new());
     let property_definition = property_definition("test").unwrap();
 
     let result = stylesheet.parse_string(
@@ -131,7 +131,7 @@ fn nested_block() {
             nested {
                 test: blue;
             }
-        }", "Test Input");
+        }");
     assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap().to_string());
 
     let expected = Vec::from([
@@ -171,7 +171,7 @@ fn nested_block() {
     assert_eq!(rules.len(), expected.len());
     assert_eq!(rules, &expected);
 
-    stylesheet = StyleSheet::new();
+    stylesheet = StyleSheet::new(PathBuf::new());
     let result = stylesheet.parse_string(
     "example {
         test: red;
@@ -179,7 +179,7 @@ fn nested_block() {
         & nested {
             test: blue;
         }
-    }", "Test Input");
+    }");
     assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap().to_string());
 
     let rules = &stylesheet.rules;
@@ -189,10 +189,10 @@ fn nested_block() {
 
 #[test]
 fn complex() {
-    let mut stylesheet = StyleSheet::new();
-    stylesheet.root_path = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data"));
+    let path = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/complex.css"));
+    let mut stylesheet = StyleSheet::new(path.clone());
 
-    let result = stylesheet.parse_file("complex.css");
+    let result = stylesheet.parse();
     assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap().to_string());
 
     let rules = &stylesheet.rules;
@@ -304,12 +304,13 @@ fn complex() {
 
 #[test]
 fn import() {
-    let mut stylesheet = StyleSheet::new();
-    stylesheet.root_path = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data"));
+    let mut stylesheet = StyleSheet::new(PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/import.css")));
 
-    let result = stylesheet.parse_file("import.css");
+    let result = stylesheet.parse();
     assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap().to_string());
 
-    let rules = stylesheet.rules;
+    assert_eq!(stylesheet.imported_sheets.len(), 2);
+
+    let rules = stylesheet.all_rules();
     assert_eq!(rules.len(), 4);
 }

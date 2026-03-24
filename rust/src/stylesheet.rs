@@ -5,7 +5,6 @@ use std::sync::Arc;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
-use std::collections::HashSet;
 
 use crate::details::{ParseError, ParseErrorKind, SourceLocation};
 use crate::details::rulesparser::*;
@@ -15,41 +14,57 @@ use crate::stylerule::*;
 
 #[derive(Debug)]
 pub struct StyleSheet {
+    pub path: PathBuf,
     pub rules: Vec<StyleRule>,
     pub errors: Vec<ParseError>,
-    pub parsed_files: HashSet<String>,
-
-    pub root_path: PathBuf,
+    pub imported_sheets: Vec<StyleSheet>,
 }
 
 impl StyleSheet {
-    pub fn new() -> StyleSheet {
+    pub fn new(path: PathBuf) -> StyleSheet {
         StyleSheet {
+            path,
             rules: Vec::new(),
             errors: Vec::new(),
-            parsed_files: HashSet::new(),
-            root_path: PathBuf::new(),
+            imported_sheets: Vec::new(),
         }
     }
 
-    pub fn parse_file(&mut self, file_name: &str) -> Result<(), ParseError> {
-        let path = self.root_path.join(file_name);
-        let file = File::open(&path);
+    pub fn all_rules(&self) -> Vec<StyleRule> {
+        let mut rules: Vec<_> = self.imported_sheets.iter().map(|sheet| sheet.all_rules()).flatten().collect();
+        rules.extend(self.rules.clone());
+        rules
+    }
+
+    pub fn all_errors(&self) -> Vec<ParseError> {
+        let mut errors: Vec<_> = self.imported_sheets.iter().map(|sheet| sheet.all_errors()).flatten().collect();
+        errors.extend(self.errors.clone());
+        errors
+    }
+
+    pub fn all_paths(&self) -> Vec<PathBuf> {
+        let mut paths: Vec<_> = self.imported_sheets.iter().map(|sheet| sheet.all_paths()).flatten().collect();
+        paths.push(self.path.clone());
+        paths
+    }
+
+    pub fn parse(&mut self) -> Result<(), ParseError> {
+        let file = File::open(&self.path);
         if let Err(error) = file {
-            return Err(ParseError{ kind: ParseErrorKind::FileError, message: format!("{}", error), location: SourceLocation{ file: path.to_string_lossy().to_string(), line: 0, column: 0 } });
+            return Err(ParseError{ kind: ParseErrorKind::FileError, message: format!("{}", error), location: SourceLocation{ file: self.path.to_string_lossy().to_string(), line: 0, column: 0 } });
         }
 
         let mut data = String::new();
         let result = file.unwrap().read_to_string(&mut data);
         if let Err(error) = result {
-            return Err(ParseError{ kind: ParseErrorKind::FileError, message: format!("{}", error), location: SourceLocation{ file: path.to_string_lossy().to_string(), line: 0, column: 0 } });
+            return Err(ParseError{ kind: ParseErrorKind::FileError, message: format!("{}", error), location: SourceLocation{ file: self.path.to_string_lossy().to_string(), line: 0, column: 0 } });
         }
 
-        self.parse_string(data.as_str(), path.to_string_lossy().as_ref())
+        self.parse_string(data.as_str())
     }
 
-    pub fn parse_string(&mut self, input: &str, origin: &str) -> Result<(), ParseError> {
-        let prefix_input = format!("/*# sourceURL={} */\n{}", origin, input);
+    pub fn parse_string(&mut self, input: &str) -> Result<(), ParseError> {
+        let prefix_input = format!("/*# sourceURL={} */\n{}", self.path.to_string_lossy().to_string(), input);
         let mut parser_input = cssparser::ParserInput::new(prefix_input.as_str());
         let mut parser = cssparser::Parser::new(&mut parser_input);
         let mut rules_parser = TopLevelParser{};
@@ -62,7 +77,7 @@ impl StyleSheet {
                 Ok(entry_contents) => {
                     match entry_contents {
                         ParseResult::Rule(rule) => {
-                            let mut parsed_rules = StyleRule::from_parsed_rule(&rule);
+                            let mut parsed_rules = StyleRule::from_parsed_rule(&rule, self);
                             rules.append(&mut parsed_rules);
                         },
                         ParseResult::PropertyDefinition(definition) => {
@@ -70,7 +85,7 @@ impl StyleSheet {
                             add_property_definition(&arc);
                         },
                         ParseResult::Import(name) => {
-                            self.parse_file(name.as_str())?;
+                            self.import(PathBuf::from(name))?
                         }
                         ParseResult::Property(_) => {
                             panic!("Received property at toplevel!");
@@ -78,14 +93,23 @@ impl StyleSheet {
                     }
                 }
                 Err(error) => {
-                    errors.push(ParseError::from_cssparser_error(&error.0, origin.to_string()));
+                    errors.push(ParseError::from_cssparser_error(&error.0, self.path.to_string_lossy().to_string()));
                 }
             }
         }
 
         self.rules.extend(rules);
         self.errors.extend(errors);
-        self.parsed_files.insert(origin.to_string());
+
+        Ok(())
+    }
+
+    pub fn import(&mut self, file: PathBuf) -> Result<(), ParseError> {
+        let path = if file.is_absolute() { file.clone() } else { self.path.parent().unwrap().join(file.clone()) };
+        let mut sheet = StyleSheet::new(path);
+        sheet.parse()?;
+
+        self.imported_sheets.push(sheet);
 
         Ok(())
     }

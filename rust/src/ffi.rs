@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: LGPL-2.1-only OR LGPL-3.0-only OR LicenseRef-KDE-Accepted-LGPL
 // SPDX-FileCopyrightText: 2025 Arjen Hiemstra <ahiemstra@heimr.nl>
 
+use std::path::PathBuf;
+
 use ffi::ValueConversionError;
 
 use crate::selector::{Selector, SelectorPart, SelectorKind, SelectorValue};
@@ -11,6 +13,8 @@ use crate::value;
 
 use crate::value::Value;
 use crate::value::{Color, ColorOperation};
+
+use crate::details::ParseError;
 
 #[cxx::bridge(namespace = "cssparser::rust")]
 mod ffi {
@@ -176,12 +180,12 @@ mod ffi {
         type StyleSheet;
         fn rules(self: &StyleSheet) -> Vec<StyleRule>;
         fn errors(self: &StyleSheet) -> Vec<StyleSheetError>;
-        fn parsed_files(self: &StyleSheet) -> Vec<String>;
-        fn set_root_path(self: &mut StyleSheet, root_path: &str);
-        fn parse_file(self: &mut StyleSheet, file_name: &str) -> Result<()>;
-        fn parse_string(self: &mut StyleSheet, data: &str, origin: &str) -> Result<()>;
+        fn paths(self: &StyleSheet) -> Vec<String>;
+        fn parse(self: &mut StyleSheet) -> Result<()>;
+        fn parse_string(self: &mut StyleSheet, data: &str) -> Result<()>;
+        fn import_file(self: &mut StyleSheet, path: &str) -> Result<()>;
 
-        fn create_stylesheet() -> Box<StyleSheet>;
+        fn create_stylesheet(path: &str) -> Box<StyleSheet>;
     }
 }
 
@@ -314,6 +318,17 @@ impl ffi::ModifiedColor {
             })
         } else {
             Err(ValueConversionError { message: String::from("Not an add color operation") })
+        }
+    }
+}
+
+impl ffi::StyleSheetError {
+    fn from_parse_error(error: &ParseError) -> ffi::StyleSheetError {
+        ffi::StyleSheetError{
+            file: error.location.file.clone(),
+            line: error.location.line,
+            column: error.location.column,
+            message: error.message.clone(),
         }
     }
 }
@@ -465,33 +480,24 @@ impl StyleRule {
 
 impl StyleSheet {
     fn rules(&self) -> Vec<StyleRule> {
-        self.rules.clone()
+        self.all_rules()
     }
 
     fn errors(&self) -> Vec<ffi::StyleSheetError> {
-        let mut result = Vec::new();
-        for error in &self.errors {
-            result.push(ffi::StyleSheetError{
-                file: String::from("Unknown"),
-                line: 0,
-                column: 0,
-                message: format!("{}", error),
-            })
-        }
-        result
+        self.errors.iter().map(|error| ffi::StyleSheetError::from_parse_error(error)).collect()
     }
 
-    fn parsed_files(&self) -> Vec<String> {
-        self.parsed_files.iter().cloned().collect()
+    fn paths(&self) -> Vec<String> {
+        self.all_paths().iter().map(|path| path.to_string_lossy().to_string()).collect()
     }
 
-    fn set_root_path(&mut self, path: &str) {
-        self.root_path = std::path::PathBuf::from(path);
+    fn import_file(&mut self, path: &str) -> Result<(), ParseError> {
+        self.import(PathBuf::from(path))
     }
 }
 
-fn create_stylesheet() -> Box<StyleSheet> {
-    Box::new(StyleSheet::new())
+fn create_stylesheet(path: &str) -> Box<StyleSheet> {
+    Box::new(StyleSheet::new(PathBuf::from(path)))
 }
 
 impl std::fmt::Display for ValueConversionError {
