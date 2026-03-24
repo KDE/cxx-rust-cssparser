@@ -136,7 +136,7 @@ public:
     /*!
      * Default constructor.
      */
-    StyleSheet();
+    StyleSheet(const std::filesystem::path &path);
     ~StyleSheet();
 
     /*!
@@ -152,14 +152,7 @@ public:
      *
      * This includes files that were imported using \c{@import} in CSS.
      */
-    std::span<const std::filesystem::path> parsedFiles() const;
-    /*!
-     * Set the root path of this StyleSheet to \a path.
-     *
-     * The root path determines relative to what path relative imports are
-     * resolved by. An import like \c{@import "example.css";}
-     */
-    void setRootPath(const std::filesystem::path &path);
+    std::span<const std::filesystem::path> paths() const;
     /*!
      * Parse a CSS file and add all rules to this StyleSheet.
      *
@@ -170,7 +163,7 @@ public:
      * \note Multiple calls will append to the internal list of rules and
      * errors.
      */
-    void parseFile(const std::string &file_name);
+    void parse();
     /*!
      * Parse a string containing CSS and add all rules to this StyleSheet.
      *
@@ -183,7 +176,9 @@ public:
      * \note Multiple calls will append to the internal list of rules and
      * errors.
      */
-    void parseString(const std::string &data, const std::string &origin);
+    void parseString(const std::string &data);
+
+    void import(const std::filesystem::path &path);
 
 private:
     struct Private;
