@@ -79,16 +79,13 @@ std::string selector_part_to_string(const SelectorPart &part)
 
 int main(int argc, char **argv)
 {
-    std::vector<std::filesystem::path> prepend_files;
-    std::vector<std::filesystem::path> append_files;
-
+    std::vector<std::filesystem::path> import_files;
     bool show_help = false;
     bool verbose = false;
 
     auto options = std::array{
         option{.name = "verbose", .has_arg = no_argument, .flag = nullptr, .val = 'v'},
-        option{.name = "prepend", .has_arg = required_argument, .flag = nullptr, .val = 'p'},
-        option{.name = "append", .has_arg = required_argument, .flag = nullptr, .val = 'a'},
+        option{.name = "import", .has_arg = required_argument, .flag = nullptr, .val = 'i'},
         option{.name = "help", .has_arg = no_argument, .flag = nullptr, .val = 'h'},
     };
 
@@ -99,11 +96,8 @@ int main(int argc, char **argv)
         case 'v':
             verbose = true;
             break;
-        case 'p':
-            prepend_files.push_back(std::string(optarg));
-            break;
-        case 'a':
-            append_files.push_back(std::string(optarg));
+        case 'i':
+            import_files.push_back(std::string(optarg));
             break;
         case 'h':
             show_help = true;
@@ -120,40 +114,22 @@ int main(int argc, char **argv)
     }
 
     if (show_help) {
-        std::cout << "Usage: " << argv[0] << "[options] <filename>\n\n";
+        std::cout << "Usage: " << argv[0] << " [options] <filename>\n\n";
         std::cout << "Options:\n";
-        std::cout << "--verbose Print full structure of parsed data.\n";
-        std::cout << "--prepend <filename> Add and parse <filename> before parsing the main file.\n";
-        std::cout << "--append <filename> Add and parse <filename> after parsing the main file.\n";
+        std::cout << "--verbose             Print full structure of parsed data.\n";
+        std::cout << "--import <filename>   Import <filename> before parsing the main file.\n";
         exit(1);
     }
 
     std::filesystem::path path(argv[optind]);
 
-    StyleSheet sheet;
+    StyleSheet sheet(path);
 
-    for (auto file : prepend_files) {
-        if (file.has_parent_path()) {
-            sheet.setRootPath(file.parent_path());
-            sheet.parseFile(file.filename());
-        } else{
-            sheet.setRootPath(path.parent_path());
-            sheet.parseFile(file);
-        }
+    for (auto file : import_files) {
+        sheet.import(file);
     }
 
-    sheet.setRootPath(path.parent_path());
-    sheet.parseFile(path.filename());
-
-    for (auto file : append_files) {
-        if (file.has_parent_path()) {
-            sheet.setRootPath(file.parent_path());
-            sheet.parseFile(file.filename());
-        } else{
-            sheet.setRootPath(path.parent_path());
-            sheet.parseFile(file);
-        }
-    }
+    sheet.parse();
 
     auto errors = sheet.errors();
     if (!errors.empty()) {
