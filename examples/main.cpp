@@ -136,7 +136,7 @@ int main(int argc, char **argv)
         std::cout << errors.size() << " errors:" << std::endl;
 
         for (auto error : errors) {
-            std::cout << error.message << std::endl;
+            std::cout << error.file << " line " << error.line << " column " << error.column << ": " << error.message << std::endl;
         }
 
         exit(2);
