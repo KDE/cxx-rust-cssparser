@@ -32,6 +32,27 @@ impl ColorOperation {
     pub fn mix(color: &Color, amount: f32) -> ColorOperation {
         ColorOperation::Mix { other: Box::new(color.clone()), amount }
     }
+
+    pub fn display_string(&self, color: &Color) -> String {
+        return match self {
+            Self::Set { r, g, b, a } => {
+                let mut parts = String::new();
+                for (name, value) in [("R", r), ("G", g), ("B", b), ("A", a)] {
+                    if let Some(value) = value {
+                        if !parts.is_empty() {
+                            parts += ", ";
+                        }
+                        parts += format!("{} {}", name, value).as_str();
+                    }
+                }
+                format!("Set {} {}", color, parts)
+            },
+            Self::Add { other } => format!("{} + {}", color, other),
+            Self::Subtract { other } => format!("{} - {}", color, other),
+            Self::Multiply { other } => format!("{} * {}", color, other),
+            Self::Mix { other, amount } => format!("Mix {} {} {}", color, other, amount),
+        }
+    }
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -119,6 +140,17 @@ impl From<Value> for Color {
     }
 }
 
+impl std::fmt::Display for Color {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.data {
+            ColorData::Empty => write!(f, "Color(Empty)"),
+            ColorData::Rgba { r, g, b, a } => write!(f, "Color(R {}, G {}, B {}, A {}", r, g, b, a),
+            ColorData::Custom { source, arguments } => write!(f, "Color(Custom source: {} arguments: {})", source, arguments.join(", ")),
+            ColorData::Modified { color, operation } => write!(f, "Color({})", operation.display_string(color.as_ref())),
+        }
+    }
+}
+
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum Unit {
     #[default] Unknown,
@@ -159,6 +191,25 @@ impl Unit {
             | "grad"
             | "turn" => Unit::Unsupported,
             _ => Unit::Unknown,
+        }
+    }
+}
+
+impl ToString for Unit {
+    fn to_string(&self) -> String {
+        match self {
+            Unit::Unknown => String::from("Unknown"),
+            Unit::Unsupported => String::from("Unsupported"),
+            Unit::Number => String::new(),
+            Unit::Px => String::from("px"),
+            Unit::Em => String::from("em"),
+            Unit::Rem => String::from("rem"),
+            Unit::Pt => String::from("pt"),
+            Unit::Percent => String::from("%"),
+            Unit::Degrees => String::from("°"),
+            Unit::Radians => String::from("rad"),
+            Unit::Seconds => String::from("s"),
+            Unit::Milliseconds => String::from("ms"),
         }
     }
 }
@@ -204,6 +255,12 @@ impl From<Value> for Dimension {
         } else {
             Dimension { value: 0.0, unit: Unit::Unknown }
         }
+    }
+}
+
+impl std::fmt::Display for Dimension {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Dimension({} {})", self.value, self.unit.to_string())
     }
 }
 
@@ -279,5 +336,19 @@ impl From<Color> for Value {
 impl From<Dimension> for Value {
     fn from(value: Dimension) -> Self {
         Value{data: ValueData::Dimension(value)}
+    }
+}
+
+impl std::fmt::Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.data {
+            ValueData::Empty => write!(f, "Empty Value"),
+            ValueData::Dimension(dimension) => write!(f, "{}", dimension),
+            ValueData::String(string) => write!(f, "String({})", string),
+            ValueData::Image(string) => write!(f, "Image({})", string),
+            ValueData::Url(string) => write!(f, "Url({})", string),
+            ValueData::Color(color) => write!(f, "{}", color),
+            ValueData::Integer(value) => write!(f, "Integer({})", value),
+        }
     }
 }
