@@ -429,7 +429,7 @@ fn validate_datatype<'a>(datatype: &DataType, values: &'a [Value]) -> Result<&'a
                         return Ok(remain)
                     }
                 }
-                Err(SyntaxValidateError(format!("Expected Length, got {:?}", value)))
+                Err(SyntaxValidateError(format!("Expected Length, got {}", value)))
             },
             DataType::Number => {
                 if let ValueData::Dimension(dimension) = &value.data {
@@ -437,7 +437,7 @@ fn validate_datatype<'a>(datatype: &DataType, values: &'a [Value]) -> Result<&'a
                         return Ok(remain)
                     }
                 }
-                Err(SyntaxValidateError(format!("Expected Number, got {:?}", value)))
+                Err(SyntaxValidateError(format!("Expected Number, got {}", value)))
             },
             DataType::Percentage => {
                 if let ValueData::Dimension(dimension) = &value.data {
@@ -445,7 +445,7 @@ fn validate_datatype<'a>(datatype: &DataType, values: &'a [Value]) -> Result<&'a
                         return Ok(remain)
                     }
                 }
-                Err(SyntaxValidateError(format!("Expected Percentage, got {:?}", value)))
+                Err(SyntaxValidateError(format!("Expected Percentage, got {}", value)))
             },
             DataType::LengthPercentage => {
                 if let ValueData::Dimension(dimension) = &value.data {
@@ -453,20 +453,20 @@ fn validate_datatype<'a>(datatype: &DataType, values: &'a [Value]) -> Result<&'a
                         return Ok(remain)
                     }
                 }
-                Err(SyntaxValidateError(format!("Expected Length or Percentage, got {:?}", value)))
+                Err(SyntaxValidateError(format!("Expected Length or Percentage, got {}", value)))
             },
             DataType::String => {
                 if let ValueData::String(_) = value.data {
                     Ok(remain)
                 } else {
-                    Err(SyntaxValidateError(format!("Expected String, got {:?}", value)))
+                    Err(SyntaxValidateError(format!("Expected String, got {}", value)))
                 }
             },
             DataType::Color => {
                 if let ValueData::Color(_) = value.data {
                     Ok(remain)
                 } else {
-                    Err(SyntaxValidateError(format!("Expected Color, got {:?}", value)))
+                    Err(SyntaxValidateError(format!("Expected Color, got {}", value)))
                 }
             },
             DataType::Angle => {
@@ -475,19 +475,19 @@ fn validate_datatype<'a>(datatype: &DataType, values: &'a [Value]) -> Result<&'a
                         return Ok(remain);
                     }
                 }
-                Err(SyntaxValidateError(format!("Expected Angle, got {:?}", value)))
+                Err(SyntaxValidateError(format!("Expected Angle, got {}", value)))
             },
             DataType::Integer => {
                 if let ValueData::Integer(_) = &value.data {
                     return Ok(remain);
                 }
-                Err(SyntaxValidateError(format!("Expected Integer, got {:?}", value)))
+                Err(SyntaxValidateError(format!("Expected Integer, got {}", value)))
             },
             DataType::Url => {
                 if let ValueData::Url(_) = &value.data {
                     return Ok(remain);
                 }
-                Err(SyntaxValidateError(format!("Expected URL, got {:?}", value)))
+                Err(SyntaxValidateError(format!("Expected URL, got {}", value)))
             },
             _ => {
                 Err(SyntaxValidateError(format!("Unhandled data type {:?}", datatype)))
