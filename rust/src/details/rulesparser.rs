@@ -50,10 +50,15 @@ impl<'i, const TOP_LEVEL: bool> cssparser::QualifiedRuleParser<'i> for RulesPars
         let selector_parser = SelectorParser{};
         let relative = if TOP_LEVEL { ParseRelative::No } else { ParseRelative::Nested };
         let result = selector_parser.parse(parser, relative);
-        if let Ok(selectors) = result {
-            Ok(selectors)
-        } else {
-            parse_error(parser, ParseErrorKind::InvalidSelectors, result.err().unwrap().to_string())
+        match result {
+            Ok(selectors) => Ok(selectors),
+            Err(error) => {
+                if let cssparser::ParseErrorKind::Custom(error) = error.kind {
+                    parse_error(parser, ParseErrorKind::InvalidSelectors, format!("Invalid Selectors: {}", error.message))
+                } else {
+                    Err(error)
+                }
+            }
         }
     }
 
@@ -162,28 +167,38 @@ impl<'i, const TOP_LEVEL: bool> cssparser::DeclarationParser<'i> for RulesParser
             }
 
             let values_result = parse_values(&ParsedPropertySyntax::Universal, input);
-            if let Ok(values) = values_result {
-                return Ok(ParseResult::PropertyDefinition(PropertyDefinition {
-                    name: name.to_string(),
-                    syntax: ParsedPropertySyntax::Universal,
-                    inherit: false,
-                    initial: values,
-                }));
-            } else {
-                return Err(values_result.err().unwrap());
+            match values_result {
+                Ok(values) => {
+                    return Ok(ParseResult::PropertyDefinition(PropertyDefinition {
+                        name: name.to_string(),
+                        syntax: ParsedPropertySyntax::Universal,
+                        inherit: false,
+                        initial: values,
+                    }));
+                }
+                Err(error) => {
+                    return parse_error(input, ParseErrorKind::InvalidPropertyValue, format!("Parsing values for property {} failed: {}", name, error));
+                }
             }
         }
 
         let pd = definition.unwrap();
         let values_result = parse_values(&pd.syntax, input);
-        if let Ok(values) = values_result {
-            Ok(ParseResult::Property(Property {
-                name: name.to_string(),
-                definition: pd,
-                values,
-            }))
-        } else {
-            Err(values_result.err().unwrap())
+        match values_result {
+            Ok(values) => {
+                Ok(ParseResult::Property(Property {
+                    name: name.to_string(),
+                    definition: pd,
+                    values,
+                }))
+            }
+            Err(error) => {
+                if let cssparser::ParseErrorKind::Custom(error) = error.kind {
+                    parse_error(input, ParseErrorKind::InvalidPropertyValue, format!("Parsing values for property {} failed: {}", name, error.message))
+                } else {
+                    Err(error)
+                }
+            }
         }
     }
 }
