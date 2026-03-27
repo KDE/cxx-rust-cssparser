@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use ffi::ValueConversionError;
 
 use crate::selector::{Selector, SelectorPart, SelectorKind, SelectorValue};
+use crate::parseerror::ParseError;
 use crate::property::Property;
 use crate::stylerule::StyleRule;
 use crate::stylesheet::StyleSheet;
@@ -14,7 +15,6 @@ use crate::value;
 use crate::value::Value;
 use crate::value::{Color, ColorOperation};
 
-use crate::details::ParseError;
 
 #[cxx::bridge(namespace = "cssparser::rust")]
 mod ffi {

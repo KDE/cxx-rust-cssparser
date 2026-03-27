@@ -5,6 +5,7 @@ mod details;
 
 pub mod value;
 pub mod selector;
+pub mod parseerror;
 pub mod property;
 pub mod stylerule;
 pub mod stylesheet;

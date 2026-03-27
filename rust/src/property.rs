@@ -4,8 +4,8 @@
 use std::sync::{Arc, RwLock, OnceLock};
 
 use crate::{
-    details::{ParseError, SourceLocation},
     details::property::syntax::{parse_syntax, ParsedPropertySyntax},
+    parseerror::{ParseError, SourceLocation},
     value::Value
 };
 

@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: LGPL-2.1-only OR LGPL-3.0-only OR LicenseRef-KDE-Accepted-LGPL
 // SPDX-FileCopyrightText: 2025 Arjen Hiemstra <ahiemstra@heimr.nl>
 
+use crate::parseerror::ParseError;
 use crate::selector::{AttributeOperator, Selector, SelectorKind, SelectorPart, SelectorValue};
 use crate::value::Value;
 
-use crate::details::ParseError;
+use crate::details::parse_error_from_cssparser_error;
 use crate::details::identifier::Identifier;
 
 use selectors::SelectorList;
@@ -88,7 +89,7 @@ impl SelectorParser {
         let result = SelectorList::parse(self, parser, relative_selectors);
 
         if let Err(error) = result {
-            return Err(parser.new_custom_error(ParseError::from_cssparser_error(&error, parser.current_source_url().unwrap_or("").to_string())))
+            return Err(parser.new_custom_error(parse_error_from_cssparser_error(&error, parser.current_source_url().unwrap_or("").to_string())))
         }
 
         let mut selectors = Vec::new();

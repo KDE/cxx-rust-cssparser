@@ -6,8 +6,9 @@ use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 
-use crate::details::{ParseError, ParseErrorKind, SourceLocation};
+use crate::details::parse_error_from_cssparser_error;
 use crate::details::rulesparser::*;
+use crate::parseerror::{ParseError, ParseErrorKind, SourceLocation};
 
 use crate::property::add_property_definition;
 use crate::stylerule::*;
@@ -93,7 +94,7 @@ impl StyleSheet {
                     }
                 }
                 Err(error) => {
-                    errors.push(ParseError::from_cssparser_error(&error.0, self.path.to_string_lossy().to_string()));
+                    errors.push(parse_error_from_cssparser_error(&error.0, self.path.to_string_lossy().to_string()));
                 }
             }
         }
