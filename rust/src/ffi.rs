@@ -484,7 +484,7 @@ impl StyleSheet {
     }
 
     fn errors(&self) -> Vec<ffi::StyleSheetError> {
-        self.errors.iter().map(|error| ffi::StyleSheetError::from_parse_error(error)).collect()
+        self.all_errors().iter().map(|error| ffi::StyleSheetError::from_parse_error(error)).collect()
     }
 
     fn paths(&self) -> Vec<String> {
