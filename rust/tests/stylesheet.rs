@@ -3,6 +3,8 @@
 
 use std::{path::PathBuf, sync::Arc};
 
+use cxx_rust_cssparser_impl::parseerror::{ParseError, ParseErrorKind, SourceLocation};
+use cxx_rust_cssparser_impl::stylesheet;
 use cxx_rust_cssparser_impl::{
     property::{add_property_definition, property_definition, Property, PropertyDefinition},
     selector::*,
@@ -313,4 +315,114 @@ fn import() {
 
     let rules = stylesheet.all_rules();
     assert_eq!(rules.len(), 4);
+}
+
+#[test]
+fn errors() {
+    setup();
+
+    let mut stylesheet = StyleSheet::new(PathBuf::new());
+    let result = stylesheet.parse_string("this is not css");
+    assert!(result.is_ok());
+    assert_eq!(stylesheet.errors, vec![
+        ParseError {
+            kind: ParseErrorKind::UnexpectedEndOfInput,
+            message: String::new(),
+            location: SourceLocation {
+                file: String::new(),
+                line: 1,
+                column: 16,
+            },
+        }
+    ]);
+
+    stylesheet = StyleSheet::new(PathBuf::new());
+    let result = stylesheet.parse_string("example { unknown-property: somevalue; }");
+    assert!(result.is_ok());
+    assert_eq!(stylesheet.errors, vec![
+        ParseError {
+            kind: ParseErrorKind::UnknownProperty,
+            message: String::from("No definition for property unknown-property"),
+            location: SourceLocation {
+                file: String::new(),
+                line: 1,
+                column: 28,
+            }
+        }
+    ]);
+
+    stylesheet = StyleSheet::new(PathBuf::new());
+    let result = stylesheet.parse_string("example { test: url(somevalue); }");
+    assert!(result.is_ok());
+    assert_eq!(stylesheet.errors, vec![
+        ParseError {
+            kind: ParseErrorKind::InvalidPropertyValue,
+            message: String::from("Parsing values for property test failed: Expected Color, got Url(somevalue)"),
+            location: SourceLocation {
+                file: String::new(),
+                line: 1,
+                column: 31,
+            },
+        }
+    ]);
+
+    stylesheet = StyleSheet::new(PathBuf::new());
+    let result = stylesheet.parse_string("invalid - selector { }");
+    assert!(result.is_ok());
+    assert_eq!(stylesheet.errors, vec![
+        ParseError {
+            kind: ParseErrorKind::InvalidSelectors,
+            message: String::from("Invalid Selectors: Dangling Combinator"),
+            location: SourceLocation {
+                file: String::new(),
+                line: 1,
+                column: 20
+            }
+        }
+    ]);
+
+    let path = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/file_with_errors.css"));
+    let file_errors = vec![
+        ParseError {
+            kind: ParseErrorKind::UnknownProperty,
+            message: String::from("No definition for property unknown-property"),
+            location: SourceLocation {
+                file: path.to_string_lossy().to_string(),
+                line: 38,
+                column: 22,
+            }
+        },
+        ParseError {
+            kind: ParseErrorKind::InvalidSelectors,
+            message: String::from("Invalid Selectors: Dangling Combinator"),
+            location: SourceLocation {
+                file: path.to_string_lossy().to_string(),
+                line: 41,
+                column: 19,
+            }
+        },
+        ParseError {
+            kind: ParseErrorKind::InvalidPropertyValue,
+            message: String::from("Parsing values for property padding-top failed: Expected Length, got String(value)"),
+            location: SourceLocation {
+                file: path.to_string_lossy().to_string(),
+                line: 46,
+                column: 23,
+            }
+        }
+    ];
+
+    let mut stylesheet = StyleSheet::new(path.clone());
+
+    let result = stylesheet.parse();
+    assert!(result.is_ok());
+    assert_eq!(stylesheet.errors, file_errors);
+
+    let path = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/import_errors.css"));
+    let mut stylesheet = StyleSheet::new(path.clone());
+
+    let result = stylesheet.parse();
+    assert!(result.is_ok());
+    assert_eq!(stylesheet.errors, vec![]);
+    assert_eq!(stylesheet.all_errors(), file_errors);
 }
