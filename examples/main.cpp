@@ -125,7 +125,7 @@ int main(int argc, char **argv)
 
     StyleSheet sheet(path);
 
-    for (auto file : import_files) {
+    for (const auto &file : import_files) {
         sheet.import(file);
     }
 
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
     if (!errors.empty()) {
         std::cout << errors.size() << " errors:" << std::endl;
 
-        for (auto error : errors) {
+        for (const auto &error : errors) {
             std::cout << error.file << " line " << error.line << " column " << error.column << ": " << error.message << std::endl;
         }
 
@@ -145,24 +145,24 @@ int main(int argc, char **argv)
     auto result = sheet.rules();
     std::cout << result.size() << " results:" << std::endl;
 
-    for (auto entry : result) {
+    for (const auto &entry : result) {
         std::cout << "Rule {\n";
 
         if (!verbose) {
             std::cout << "  selector:\n";
             const auto selector = entry.selector();
-            for (auto part : selector.parts()) {
+            for (const auto &part : selector.parts()) {
                 std::cout << "    " << selector_part_to_string(part) << "\n";
             }
             std::cout << "\n";
 
-            for (auto property : entry.properties()) {
+            for (const auto &property : entry.properties()) {
                 if (property.values().size() == 1) {
                     std::cout << "  " << property.name() << ": " << value_to_string(property.values().front()) << "\n";
                 } else {
                     std::cout << "\n";
                     std::cout << "  " << property.name() << ":\n";
-                    for (auto value : property.values()) {
+                    for (const auto &value : property.values()) {
                         std::cout << "    " << value_to_string(value) << "\n";
                     }
                 }
@@ -170,12 +170,12 @@ int main(int argc, char **argv)
         } else {
             std::cout << "  Selector {\n";
             const auto selector = entry.selector();
-            for (auto part : selector.parts()) {
+            for (const auto &part : selector.parts()) {
                 std::cout << "    " << part.toString() << "\n";
             }
             std::cout << "  }\n\n";
 
-            for (auto property : entry.properties()) {
+            for (const auto &property : entry.properties()) {
                 if (property.values().size() == 1) {
                     std::cout << "  Property(name: " << property.name() << ", value: " << property.values().front().toString() << "\n";
                 } else {

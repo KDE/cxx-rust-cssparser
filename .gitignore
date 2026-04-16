@@ -6,3 +6,4 @@ build
 *kdev*
 *.kate-swp
 /rust/target
+.clang-format

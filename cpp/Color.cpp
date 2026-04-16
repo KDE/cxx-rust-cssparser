@@ -50,7 +50,7 @@ std::string CustomColorData::toString() const
 {
     auto args = std::string{};
 
-    for (auto arg : m_arguments) {
+    for (const auto &arg : m_arguments) {
         if (!args.empty()) {
             args += ", ";
         }
