@@ -3,13 +3,12 @@
 
 corrosion_import_crate(MANIFEST_PATH Cargo.toml)
 
-corrosion_add_cxxbridge(cxx-rust-cssparser-impl-bridge
-    CRATE cxx_rust_cssparser_impl
-    FILES ffi.rs
+string(SHA1 _cargo_path_hash ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml)
+string(SUBSTRING "${_cargo_path_hash}" 0 5 _cargo_path_hash)
+message(STATUS ${CMAKE_BINARY_DIR}/cargo/rust_${_cargo_path_hash}/${Rust_CARGO_TARGET}/cxxbridge)
+target_include_directories(cxx_rust_cssparser_impl INTERFACE
+    ${CMAKE_BINARY_DIR}/cargo/rust_${_cargo_path_hash}/${Rust_CARGO_TARGET}/cxxbridge
 )
-
-# Ensure we build the bridge target with PIC otherwise linking fails
-set_target_properties(cxx-rust-cssparser-impl-bridge PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
 if (BUILD_TESTING)
     add_test(

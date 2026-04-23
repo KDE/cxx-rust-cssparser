@@ -28,7 +28,7 @@ target_sources(cxx-rust-cssparser PUBLIC
     ${CMAKE_CURRENT_BINARY_DIR}/cssparser_export.h
 )
 
-target_link_libraries(cxx-rust-cssparser PRIVATE cxx-rust-cssparser-impl-bridge)
+target_link_libraries(cxx-rust-cssparser PRIVATE cxx_rust_cssparser_impl)
 
 target_include_directories(cxx-rust-cssparser PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
