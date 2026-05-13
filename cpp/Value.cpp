@@ -5,7 +5,7 @@
 
 #include <format>
 
-#include "cxx-rust-cssparser-impl/src/ffi.rs.h"
+#include "cxx-rust-cssparser-impl-bridge/ffi.h"
 
 using namespace std::string_literals;
 
