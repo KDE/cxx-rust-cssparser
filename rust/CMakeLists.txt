@@ -3,7 +3,14 @@
 
 corrosion_import_crate(MANIFEST_PATH Cargo.toml)
 
-if(DEFINED ENV{FLATPAK_ID})
+if (USE_CORROSION_CXXBRIDGE)
+    corrosion_add_cxxbridge(cxx-rust-cssparser-impl-bridge
+        CRATE cxx_rust_cssparser_impl
+        FILES ffi.rs
+    )
+
+    set_target_properties(cxx-rust-cssparser-impl-bridge PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+else()
     # Flatpak: use cxx_build output directly instead of corrosion_add_cxxbridge.
     string(SHA1 _cargo_path_hash ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml)
     string(SUBSTRING "${_cargo_path_hash}" 0 5 _cargo_path_hash)
@@ -17,13 +24,6 @@ if(DEFINED ENV{FLATPAK_ID})
     )
 
     target_include_directories(cxx_rust_cssparser_impl INTERFACE ${_bridge_include_dir})
-else()
-    corrosion_add_cxxbridge(cxx-rust-cssparser-impl-bridge
-        CRATE cxx_rust_cssparser_impl
-        FILES ffi.rs
-    )
-
-    set_target_properties(cxx-rust-cssparser-impl-bridge PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 endif()
 
 if (BUILD_TESTING)

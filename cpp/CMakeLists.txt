@@ -28,10 +28,10 @@ target_sources(cxx-rust-cssparser PUBLIC
     ${CMAKE_CURRENT_BINARY_DIR}/cssparser_export.h
 )
 
-if(DEFINED ENV{FLATPAK_ID})
-    target_link_libraries(cxx-rust-cssparser PRIVATE cxx_rust_cssparser_impl)
-else()
+if (USE_CORROSION_CXXBRIDGE)
     target_link_libraries(cxx-rust-cssparser PRIVATE cxx-rust-cssparser-impl-bridge)
+else()
+    target_link_libraries(cxx-rust-cssparser PRIVATE cxx_rust_cssparser_impl)
 endif()
 
 target_include_directories(cxx-rust-cssparser PUBLIC
