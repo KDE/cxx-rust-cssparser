@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.27)
 
-project(cxx-rust-cssparser VERSION 1.0.0)
+project(cxx-rust-cssparser VERSION 1.1.0)
 
 set(KF_DEP_VERSION 6.10.0)
 
