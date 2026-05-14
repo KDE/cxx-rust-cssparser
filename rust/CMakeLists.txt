@@ -20,7 +20,7 @@ else()
     set(_bridge_include_dir ${CMAKE_CURRENT_BINARY_DIR}/corrosion_generated/cxxbridge)
     file(MAKE_DIRECTORY ${_bridge_include_dir}/cxx-rust-cssparser-impl-bridge)
     file(WRITE ${_bridge_include_dir}/cxx-rust-cssparser-impl-bridge/ffi.h
-        "#pragma once\n#include \"${_cxxbridge_dir}/cxx_rust_cssparser_impl/src/ffi.rs.h\"\n"
+        "#pragma once\n#include \"${_cxxbridge_dir}/cxx-rust-cssparser-impl/src/ffi.rs.h\"\n"
     )
 
     target_include_directories(cxx_rust_cssparser_impl INTERFACE ${_bridge_include_dir})
