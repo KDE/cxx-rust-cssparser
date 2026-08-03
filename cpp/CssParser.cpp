@@ -52,23 +52,25 @@ Rule Rule::fromRust(const rust::StyleRule &rule)
 
 struct StyleSheet::Private
 {
+    Private(std::filesystem::path path)
+        : path(path)
+        , stylesheet(rust::create_stylesheet(path.string()))
+    {
+    }
+
     void update();
 
     std::filesystem::path path;
 
-    rust::StyleSheet *stylesheet;
+    ::rust::Box<rust::StyleSheet> stylesheet;
     std::vector<Rule> rules;
     std::vector<Error> errors;
     std::vector<std::filesystem::path> paths;
 };
 
 StyleSheet::StyleSheet(const std::filesystem::path &path)
-    : d(std::make_unique<Private>())
+    : d(std::make_unique<Private>(path))
 {
-    d->path = path;
-
-    auto sheet = rust::create_stylesheet(path.string());
-    d->stylesheet = sheet.into_raw();
 }
 
 StyleSheet::~StyleSheet() = default;
