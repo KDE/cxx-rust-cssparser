@@ -181,6 +181,20 @@ impl <'i> ::selectors::Parser<'i> for SelectorParser {
         Ok(PseudoClass(name.to_string()))
     }
 
+    fn parse_non_ts_functional_pseudo_class<'t>(
+        &self,
+        name: cssparser::CowRcStr<'i>,
+        parser: &mut cssparser::Parser<'i, 't>,
+        _after_part: bool,
+    ) -> Result<<Self::Impl as selectors::SelectorImpl>::NonTSPseudoClass, cssparser::ParseError<'i, Self::Error>> {
+        if name == "state" {
+            let state_name = parser.expect_ident()?;
+            Ok(PseudoClass(state_name.to_string()))
+        } else {
+            Err(parser.new_custom_error(selectors::parser::SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name)))
+        }
+    }
+
     fn parse_pseudo_element(
         &self,
        _location: cssparser::SourceLocation,

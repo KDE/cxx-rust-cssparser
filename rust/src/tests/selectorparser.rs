@@ -12,7 +12,11 @@ fn check_selector(input: &str, expected: Vec<Selector>, relative: ParseRelative)
     let mut css_parser = cssparser::Parser::new(&mut parser_input);
 
     let result = parser.parse(&mut css_parser, relative);
-    assert_eq!(result.ok().unwrap(), expected)
+    if result.is_err() {
+        assert_eq!("", result.err().unwrap().to_string());
+    } else {
+        assert_eq!(result.ok().unwrap(), expected)
+    }
 }
 
 fn check_selector_toplevel(input: &str, expected: Vec<Selector>) {
@@ -191,6 +195,16 @@ test_cases! {
                 SelectorPart::new_with_empty(SelectorKind::PartCombinator),
                 SelectorPart::new_with_value(SelectorKind::Part, Value::from("subelement")),
                 SelectorPart::new_with_value(SelectorKind::PseudoClass, Value::from("hovered")),
+            ])
+        ];
+
+    part_with_state_function:
+        check_selector_toplevel "type::part(subelement):state(some_state)", vec![
+            Selector::from_parts(&[
+                SelectorPart::new_with_value(SelectorKind::Type, Value::from("type")),
+                SelectorPart::new_with_empty(SelectorKind::PartCombinator),
+                SelectorPart::new_with_value(SelectorKind::Part, Value::from("subelement")),
+                SelectorPart::new_with_value(SelectorKind::PseudoClass, Value::from("some_state")),
             ])
         ];
 }
