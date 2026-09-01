@@ -78,12 +78,14 @@ public:
         Attribute,
         RelativeParent,
         DocumentRoot,
+        Part,
 
         // Special value to mark the start of combinator selectors
         CombinatorStart,
 
         DescendantCombinator,
         ChildCombinator,
+        PartCombinator,
     };
 
     SelectorPart();

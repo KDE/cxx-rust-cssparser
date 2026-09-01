@@ -173,5 +173,24 @@ test_cases! {
                 SelectorPart::new_with_empty(SelectorKind::DescendantCombinator),
                 SelectorPart::new_with_empty(SelectorKind::RelativeParent),
             ])
-        ]
+        ];
+
+    part:
+        check_selector_toplevel "type::part(subelement)", vec![
+            Selector::from_parts(&[
+                SelectorPart::new_with_value(SelectorKind::Type, Value::from("type")),
+                SelectorPart::new_with_empty(SelectorKind::PartCombinator),
+                SelectorPart::new_with_value(SelectorKind::Part, Value::from("subelement")),
+            ])
+        ];
+
+    part_with_state:
+        check_selector_toplevel "type::part(subelement):hovered", vec![
+            Selector::from_parts(&[
+                SelectorPart::new_with_value(SelectorKind::Type, Value::from("type")),
+                SelectorPart::new_with_empty(SelectorKind::PartCombinator),
+                SelectorPart::new_with_value(SelectorKind::Part, Value::from("subelement")),
+                SelectorPart::new_with_value(SelectorKind::PseudoClass, Value::from("hovered")),
+            ])
+        ];
 }

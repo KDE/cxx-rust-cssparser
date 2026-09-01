@@ -51,12 +51,16 @@ std::string kindToString(SelectorPart::Kind kind)
         return "PseudoClass"s;
     case SelectorPart::Kind::DocumentRoot:
         return "DocumentRoot"s;
+    case SelectorPart::Kind::Part:
+        return "Part"s;
     case SelectorPart::Kind::DescendantCombinator:
         return "DescendantCombinator"s;
     case SelectorPart::Kind::ChildCombinator:
         return "ChildCombinator"s;
     case SelectorPart::Kind::CombinatorStart:
         return "CombinatorStart"s;
+    case SelectorPart::Kind::PartCombinator:
+        return "PartCombinator"s;
     }
 
     return "Unknown"s;
@@ -71,6 +75,7 @@ std::string SelectorPart::toString() const
     case SelectorPart::Kind::DocumentRoot:
     case SelectorPart::Kind::DescendantCombinator:
     case SelectorPart::Kind::ChildCombinator:
+    case SelectorPart::Kind::PartCombinator:
         return std::format("SelectorPart(type: {})", kind);
     default:
         return std::format("SelectorPart(type: {}, value: {})", kind, m_value.toString());
@@ -98,10 +103,14 @@ inline SelectorPart::Kind convertKind(rust::SelectorKind rustKind)
         return SelectorPart::Kind::RelativeParent;
     case rust::SelectorKind::DocumentRoot:
         return SelectorPart::Kind::DocumentRoot;
+    case rust::SelectorKind::Part:
+        return SelectorPart::Kind::Part;
     case rust::SelectorKind::DescendantCombinator:
         return SelectorPart::Kind::DescendantCombinator;
     case rust::SelectorKind::ChildCombinator:
         return SelectorPart::Kind::ChildCombinator;
+    case rust::SelectorKind::PartCombinator:
+        return SelectorPart::Kind::PartCombinator;
     }
 
     assert(false && "Mismatch between SelectorPart kinds in C++ and Rust, update C++ code!");

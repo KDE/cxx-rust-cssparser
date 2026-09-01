@@ -112,8 +112,10 @@ mod ffi {
         Attribute,
         RelativeParent,
         DocumentRoot,
+        Part,
         DescendantCombinator,
         ChildCombinator,
+        PartCombinator,
     }
 
     #[derive(Debug, Clone, Copy)]
@@ -256,8 +258,10 @@ convert_enum!(SelectorKind, ffi::SelectorKind, {
     SelectorKind::Attribute => Attribute,
     SelectorKind::RelativeParent => RelativeParent,
     SelectorKind::DocumentRoot => DocumentRoot,
+    SelectorKind::Part => Part,
     SelectorKind::DescendantCombinator => DescendantCombinator,
     SelectorKind::ChildCombinator => ChildCombinator,
+    SelectorKind::PartCombinator => PartCombinator,
 });
 
 convert_enum!(value::ColorOperation, ffi::ColorOperationType, {

@@ -142,6 +142,10 @@ impl SelectorParser {
                         });
                     },
 
+                    selectors::parser::Component::Part(part) => {
+                        parts.insert(0, SelectorPart::new_with_value(SelectorKind::Part, Value::from(part.first().unwrap())))
+                    },
+
                     selectors::parser::Component::Combinator(combinator) => {
                         selector.parts.extend(parts);
                         parts = Vec::new();
@@ -149,6 +153,7 @@ impl SelectorParser {
                         match combinator {
                             selectors::parser::Combinator::Descendant => selector.parts.push(SelectorPart::new_with_empty(SelectorKind::DescendantCombinator)),
                             selectors::parser::Combinator::Child => selector.parts.push(SelectorPart::new_with_empty(SelectorKind::ChildCombinator)),
+                            selectors::parser::Combinator::Part => selector.parts.push(SelectorPart::new_with_empty(SelectorKind::PartCombinator)),
                             _ => println!("Warning: Combinator {:#?} not implemented", combinator),
                         }
                     }
@@ -185,6 +190,10 @@ impl <'i> ::selectors::Parser<'i> for SelectorParser {
     }
 
     fn parse_parent_selector(&self) -> bool {
+        true
+    }
+
+    fn parse_part(&self) -> bool {
         true
     }
 }

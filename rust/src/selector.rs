@@ -26,8 +26,10 @@ pub enum SelectorKind {
     Attribute,
     RelativeParent,
     DocumentRoot,
+    Part,
     DescendantCombinator,
     ChildCombinator,
+    PartCombinator,
 }
 
 #[derive(Debug, Clone, PartialEq)]
