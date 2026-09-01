@@ -32,8 +32,6 @@ if (BUILD_DOCS)
     include(ECMGenerateQDoc)
 endif()
 
-option(USE_CORROSION_CXXBRIDGE "Use corrosion to build the CXX bridge" ON)
-
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_AUTOMOC FALSE)
 set(CMAKE_AUTORCC FALSE)

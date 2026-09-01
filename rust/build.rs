@@ -4,5 +4,6 @@
 fn main() {
     cxx_build::bridge("src/ffi.rs")
         .std("c++20")
+        .flag("-Wno-maybe-uninitialized")
         .compile("cxx-rust-cssparser-impl");
 }

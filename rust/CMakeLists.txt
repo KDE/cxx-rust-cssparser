@@ -2,29 +2,29 @@
 # SPDX-FileCopyrightText: 2025 Arjen Hiemstra <ahiemstra@heimr.nl>
 
 corrosion_import_crate(MANIFEST_PATH Cargo.toml)
+corrosion_set_env_vars(cxx_rust_cssparser_impl CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}/output)
 
-if (USE_CORROSION_CXXBRIDGE)
-    corrosion_add_cxxbridge(cxx-rust-cssparser-impl-bridge
-        CRATE cxx_rust_cssparser_impl
-        FILES ffi.rs
-    )
+set_source_files_properties(
+    ${CMAKE_CURRENT_BINARY_DIR}/output/cxxbridge/cxx-rust-cssparser-impl/src/ffi.rs.cc
+    ${CMAKE_CURRENT_BINARY_DIR}/output/cxxbridge/cxx-rust-cssparser-impl/src/ffi.rs.h
+    PROPERTIES GENERATED ON
+)
 
-    set_target_properties(cxx-rust-cssparser-impl-bridge PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
-else()
-    # Flatpak: use cxx_build output directly instead of corrosion_add_cxxbridge.
-    string(SHA1 _cargo_path_hash ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml)
-    string(SUBSTRING "${_cargo_path_hash}" 0 5 _cargo_path_hash)
-    set(_cxxbridge_dir ${CMAKE_BINARY_DIR}/cargo/rust_${_cargo_path_hash}/${Rust_CARGO_TARGET}/cxxbridge)
+add_library(cxx-rust-cssparser-impl-bridge STATIC)
+target_sources(cxx-rust-cssparser-impl-bridge PRIVATE
+    ${CMAKE_CURRENT_BINARY_DIR}/output/cxxbridge/cxx-rust-cssparser-impl/src/ffi.rs.cc
+    ${CMAKE_CURRENT_BINARY_DIR}/output/cxxbridge/cxx-rust-cssparser-impl/src/ffi.rs.h
+)
 
-    # Forward the cxx_build header to the path corrosion_add_cxxbridge would use.
-    set(_bridge_include_dir ${CMAKE_CURRENT_BINARY_DIR}/corrosion_generated/cxxbridge)
-    file(MAKE_DIRECTORY ${_bridge_include_dir}/cxx-rust-cssparser-impl-bridge)
-    file(WRITE ${_bridge_include_dir}/cxx-rust-cssparser-impl-bridge/ffi.h
-        "#pragma once\n#include \"${_cxxbridge_dir}/cxx-rust-cssparser-impl/src/ffi.rs.h\"\n"
-    )
+target_include_directories(cxx-rust-cssparser-impl-bridge PUBLIC
+    ${CMAKE_CURRENT_BINARY_DIR}/output/cxxbridge/cxx-rust-cssparser-impl/src
+)
 
-    target_include_directories(cxx_rust_cssparser_impl INTERFACE ${_bridge_include_dir})
-endif()
+set_target_properties(cxx-rust-cssparser-impl-bridge PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_compile_options(cxx-rust-cssparser-impl-bridge PRIVATE -Wno-maybe-uninitialized)
+target_link_libraries(cxx-rust-cssparser-impl-bridge PRIVATE cxx_rust_cssparser_impl)
+
+add_dependencies(cxx-rust-cssparser-impl-bridge cxx_rust_cssparser_impl)
 
 if (BUILD_TESTING)
     add_test(
