@@ -19,7 +19,7 @@ namespace rust
 inline namespace cxxbridge1
 {
 template<typename T>
-struct Box;
+class Box;
 }
 }
 
