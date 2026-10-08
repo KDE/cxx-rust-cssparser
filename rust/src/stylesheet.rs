@@ -10,7 +10,7 @@ use crate::details::parse_error_from_cssparser_error;
 use crate::details::rulesparser::*;
 use crate::parseerror::{ParseError, ParseErrorKind, SourceLocation};
 
-use crate::property::add_property_definition;
+use crate::property::PropertyDefinitions;
 use crate::stylerule::*;
 
 #[derive(Debug)]
@@ -19,12 +19,18 @@ pub struct StyleSheet {
     pub rules: Vec<StyleRule>,
     pub errors: Vec<ParseError>,
     pub imported_sheets: Vec<StyleSheet>,
+    pub definitions: Arc<PropertyDefinitions>,
 }
 
 impl StyleSheet {
     pub fn new(path: PathBuf) -> StyleSheet {
+        Self::with_definitions(path, Arc::new(PropertyDefinitions::default()))
+    }
+
+    fn with_definitions(path: PathBuf, definitions: Arc<PropertyDefinitions>) -> StyleSheet {
         StyleSheet {
             path,
+            definitions,
             rules: Vec::new(),
             errors: Vec::new(),
             imported_sheets: Vec::new(),
@@ -68,7 +74,8 @@ impl StyleSheet {
         let prefix_input = format!("/*# sourceURL={} */\n{}", self.path.to_string_lossy().to_string(), input);
         let mut parser_input = cssparser::ParserInput::new(prefix_input.as_str());
         let mut parser = cssparser::Parser::new(&mut parser_input);
-        let mut rules_parser = TopLevelParser{};
+        let definitions = self.definitions.clone();
+        let mut rules_parser = TopLevelParser { definitions: &definitions };
         let style_sheet_parser = cssparser::StyleSheetParser::new(&mut parser, &mut rules_parser);
 
         let mut rules: Vec<StyleRule> = Vec::new();
@@ -82,8 +89,7 @@ impl StyleSheet {
                             rules.append(&mut parsed_rules);
                         },
                         ParseResult::PropertyDefinition(definition) => {
-                            let arc = Arc::new(definition);
-                            add_property_definition(&arc);
+                            definitions.add(definition);
                         },
                         ParseResult::Import(name) => {
                             self.import(PathBuf::from(name))?
@@ -107,7 +113,7 @@ impl StyleSheet {
 
     pub fn import(&mut self, file: PathBuf) -> Result<(), ParseError> {
         let path = if file.is_absolute() { file.clone() } else { self.path.parent().unwrap().join(file.clone()) };
-        let mut sheet = StyleSheet::new(path);
+        let mut sheet = Self::with_definitions(path, self.definitions.clone());
         sheet.parse()?;
 
         self.imported_sheets.push(sheet);

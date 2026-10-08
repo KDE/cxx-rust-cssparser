@@ -4,6 +4,7 @@
 use crate::details::property::syntax::parse_syntax;
 use crate::details::property::value::parse_values;
 use crate::parseerror::{ParseErrorKind, SourceLocation};
+use crate::property::PropertyDefinitions;
 use crate::value::{Color, Dimension, Value, Unit};
 
 fn check_value(input: (&str, &str), expected: Vec<Value>) {
@@ -12,7 +13,7 @@ fn check_value(input: (&str, &str), expected: Vec<Value>) {
 
     let parsed_syntax = parse_syntax(input.0, SourceLocation::from_file("Test Input")).unwrap();
 
-    let result = parse_values(&parsed_syntax, &mut parser);
+    let result = parse_values(&parsed_syntax, &mut parser, &PropertyDefinitions::default());
     match result {
         Ok(values) => assert_eq!(values, expected),
         Err(error) => panic!("{}", error),
@@ -95,7 +96,7 @@ fn check_error(syntax: &str, input: &str) {
 
     let parsed_syntax = parse_syntax(syntax, SourceLocation::from_file("Test Input")).unwrap();
 
-    let result = parse_values(&parsed_syntax, &mut parser);
+    let result = parse_values(&parsed_syntax, &mut parser, &PropertyDefinitions::default());
     match result {
         Ok(values) => panic!("Expected error, got Ok({:?})", values),
         Err(error) => {

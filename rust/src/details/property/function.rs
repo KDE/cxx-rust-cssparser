@@ -4,7 +4,7 @@
 use std::sync::{RwLock, OnceLock};
 use std::collections::hash_map::HashMap;
 
-use crate::property::property_definition;
+use crate::property::PropertyDefinitions;
 use crate::value::{Value, ValueData, Color, ColorOperation, Dimension};
 
 use crate::details::{parse_error, ParseError, ParseErrorKind, SourceLocation};
@@ -13,7 +13,10 @@ use super::syntax::{ParsedPropertySyntax, parse_syntax};
 use super::value::parse_values;
 
 pub type PropertyFunctionResult<'i> = Result<Vec<Value>, cssparser::ParseError<'i, ParseError>>;
-pub type PropertyFunction = for <'a, 'i, 't> fn(&'a mut cssparser::Parser<'i, 't>) -> PropertyFunctionResult<'i>;
+pub type PropertyFunction = for<'a, 'i, 't> fn(
+    &'a mut cssparser::Parser<'i, 't>,
+    &PropertyDefinitions,
+) -> PropertyFunctionResult<'i>;
 
 fn property_functions() -> &'static RwLock<HashMap<String, PropertyFunction>> {
     static FUNCTIONS: OnceLock<RwLock<HashMap<String, PropertyFunction>>> = OnceLock::new();
@@ -51,19 +54,26 @@ pub fn add_property_function(name: &str, function: PropertyFunction) -> bool {
 }
 
 // Helper function to parse function arguments based on a CSS property syntax
-fn parse_arguments<'i, 't>(syntax: &str, parser: &mut cssparser::Parser<'i, 't>) -> PropertyFunctionResult<'i> {
+fn parse_arguments<'i, 't>(
+    syntax: &str,
+    parser: &mut cssparser::Parser<'i, 't>,
+    definitions: &PropertyDefinitions,
+) -> PropertyFunctionResult<'i> {
     let syntax_result = parse_syntax(syntax, SourceLocation::from_file("inline"));
     if let Err(error) = syntax_result {
         return Err(parser.new_custom_error(error));
     }
 
-    parse_values(syntax_result.as_ref().unwrap(), parser)
+    parse_values(syntax_result.as_ref().unwrap(), parser, definitions)
 }
 
 // Parse `var(<custom-property-name>, <declaration-value>?)`
-fn var<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> PropertyFunctionResult<'i> {
+fn var<'i, 't>(
+    parser: &mut cssparser::Parser<'i, 't>,
+    definitions: &PropertyDefinitions,
+) -> PropertyFunctionResult<'i> {
     let var_name = parser.expect_ident()?.to_string();
-    let property_definition = property_definition(var_name.as_str());
+    let property_definition = definitions.get(var_name.as_str());
     if let Some(definition) = property_definition {
         return Ok(definition.initial.clone());
     }
@@ -73,12 +83,15 @@ fn var<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> PropertyFunctionResult
     }
 
     parser.expect_comma()?;
-    parse_values(&ParsedPropertySyntax::Universal, parser)
+    parse_values(&ParsedPropertySyntax::Universal, parser, definitions)
 }
 
 // Parse `mix(<color>, <color>, <number>)`
-fn mix<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> PropertyFunctionResult<'i> {
-    let values = parse_arguments("<color>, <color>, <number>", parser)?;
+fn mix<'i, 't>(
+    parser: &mut cssparser::Parser<'i, 't>,
+    definitions: &PropertyDefinitions,
+) -> PropertyFunctionResult<'i> {
+    let values = parse_arguments("<color>, <color>, <number>", parser, definitions)?;
 
     let first_color: Color = values[0].clone().into();
     let second_color: Box<Color> = Box::new(values[1].clone().into());
@@ -90,8 +103,11 @@ fn mix<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> PropertyFunctionResult
 }
 
 // Parse `custom-color(<string>, <string>#)`
-fn custom_color<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> PropertyFunctionResult<'i> {
-    let values = parse_arguments("<string>, <string>#", parser)?;
+fn custom_color<'i, 't>(
+    parser: &mut cssparser::Parser<'i, 't>,
+    definitions: &PropertyDefinitions,
+) -> PropertyFunctionResult<'i> {
+    let values = parse_arguments("<string>, <string>#", parser, definitions)?;
 
     let (source, args) = values.split_first().unwrap();
 
@@ -101,8 +117,15 @@ fn custom_color<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> PropertyFunct
 }
 
 // Parse `modify-color(<color> (add | subtract | multiply | set-alpha) (<color> | <number>))
-fn modify_color<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> PropertyFunctionResult<'i> {
-    let values = parse_arguments("<color> (((add | subtract | multiply) <color>) | (set-alpha <number>))", parser)?;
+fn modify_color<'i, 't>(
+    parser: &mut cssparser::Parser<'i, 't>,
+    definitions: &PropertyDefinitions,
+) -> PropertyFunctionResult<'i> {
+    let values = parse_arguments(
+        "<color> (((add | subtract | multiply) <color>) | (set-alpha <number>))",
+        parser,
+        definitions,
+    )?;
     let color: Color = values[0].clone().into();
     let operation: String = values[1].to_string();
     let data: Value = values[2].clone();

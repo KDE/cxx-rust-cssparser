@@ -7,26 +7,27 @@ use super::syntax::{parse_syntax, ParsedPropertySyntax};
 use super::value::parse_values;
 use super::function::property_function;
 
-use crate::property::PropertyDefinition;
+use crate::property::{PropertyDefinition, PropertyDefinitions};
 use crate::value::ValueData;
 
-struct PropertyDefinitionParser {
+struct PropertyDefinitionParser<'a> {
+    definitions: &'a PropertyDefinitions,
     definition: PropertyDefinition,
 }
 
-impl<'i> cssparser::AtRuleParser<'i> for PropertyDefinitionParser {
+impl<'i> cssparser::AtRuleParser<'i> for PropertyDefinitionParser<'_> {
     type Prelude = ();
     type AtRule = ();
     type Error = ParseError;
 }
 
-impl<'i> cssparser::QualifiedRuleParser<'i> for PropertyDefinitionParser {
+impl<'i> cssparser::QualifiedRuleParser<'i> for PropertyDefinitionParser<'_> {
     type Prelude = ();
     type QualifiedRule = ();
     type Error = ParseError;
 }
 
-impl<'i> cssparser::DeclarationParser<'i> for PropertyDefinitionParser {
+impl<'i> cssparser::DeclarationParser<'i> for PropertyDefinitionParser<'_> {
     type Declaration = ();
     type Error = ParseError;
 
@@ -43,7 +44,9 @@ impl<'i> cssparser::DeclarationParser<'i> for PropertyDefinitionParser {
                     cssparser::Token::Function(function) => {
                         if function == &"var" {
                             let var_function = property_function("var").unwrap();
-                            let result = input.parse_nested_block(|parser| var_function(parser));
+                            let result = input.parse_nested_block(|parser| {
+                                var_function(parser, self.definitions)
+                            });
                             if let Ok(values) = result {
                                 if values.len() == 1 {
                                     if let ValueData::String(string) = &values.first().unwrap().data {
@@ -81,7 +84,7 @@ impl<'i> cssparser::DeclarationParser<'i> for PropertyDefinitionParser {
                 }
             },
             "initial-value" => {
-                let value_result = parse_values(&self.definition.syntax, input);
+                let value_result = parse_values(&self.definition.syntax, input, self.definitions);
                 if let Ok(values) = value_result {
                     self.definition.initial = values.into();
                 } else {
@@ -103,7 +106,7 @@ impl<'i> cssparser::DeclarationParser<'i> for PropertyDefinitionParser {
     }
 }
 
-impl<'i> cssparser::RuleBodyItemParser<'i, (), ParseError> for PropertyDefinitionParser {
+impl<'i> cssparser::RuleBodyItemParser<'i, (), ParseError> for PropertyDefinitionParser<'_> {
     fn parse_qualified(&self) -> bool {
         false
     }
@@ -116,8 +119,10 @@ impl<'i> cssparser::RuleBodyItemParser<'i, (), ParseError> for PropertyDefinitio
 pub fn parse_property_definition<'i, 't>(
     input: &mut cssparser::Parser<'i, 't>,
     name: String,
+    definitions: &PropertyDefinitions,
 ) -> Result<PropertyDefinition, cssparser::ParseError<'i, ParseError>> {
     let mut parser = PropertyDefinitionParser{
+        definitions,
         definition: PropertyDefinition::empty(),
     };
     parser.definition.name = name;

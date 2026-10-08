@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-only OR LGPL-3.0-only OR LicenseRef-KDE-Accepted-LGPL
 // SPDX-FileCopyrightText: 2025 Arjen Hiemstra <ahiemstra@heimr.nl>
 
-use std::sync::{Arc, RwLock, OnceLock};
+use std::sync::{Arc, RwLock};
 
 use crate::{
     details::property::syntax::{parse_syntax, ParsedPropertySyntax},
@@ -17,33 +17,36 @@ pub struct PropertyDefinition {
     pub initial: Vec<Value>,
 }
 
-fn property_definitions() -> &'static RwLock<Vec<Arc<PropertyDefinition>>> {
-    static DEFINITIONS: OnceLock<RwLock<Vec<Arc<PropertyDefinition>>>> = OnceLock::new();
-    DEFINITIONS.get_or_init(|| RwLock::new(Vec::new()))
+/// Property definitions shared by a stylesheet and its imports.
+#[derive(Debug, Default)]
+pub struct PropertyDefinitions {
+    definitions: RwLock<Vec<Arc<PropertyDefinition>>>,
 }
 
-pub fn property_definition(name: &str) -> Option<Arc<PropertyDefinition>> {
-    if let Ok(definitions) = property_definitions().read() {
-        let def = definitions.iter().find(|&definition| definition.name == name);
-        if let Some(definition) = def {
-            return Some(definition.clone());
+impl PropertyDefinitions {
+    pub fn get(&self, name: &str) -> Option<Arc<PropertyDefinition>> {
+        if let Ok(definitions) = self.definitions.read() {
+            return definitions
+                .iter()
+                .find(|definition| definition.name == name)
+                .cloned();
         }
+        None
     }
 
-    None{}
-}
-
-pub fn add_property_definition(definition: &Arc<PropertyDefinition>) -> bool {
-    let defs = property_definitions().write();
-    if let Ok(mut definitions) = defs {
-        if definitions.iter().find(|&def| def.name == definition.name).is_some() {
-            return false;
+    pub fn add(&self, definition: PropertyDefinition) -> bool {
+        if let Ok(mut definitions) = self.definitions.write() {
+            if definitions
+                .iter()
+                .any(|existing| existing.name == definition.name)
+            {
+                return false;
+            }
+            definitions.push(Arc::new(definition));
+            return true;
         }
-
-        definitions.push(definition.clone());
+        false
     }
-
-    true
 }
 
 impl PropertyDefinition {

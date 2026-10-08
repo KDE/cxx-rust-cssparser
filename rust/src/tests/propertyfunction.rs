@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2025 Arjen Hiemstra <ahiemstra@heimr.nl>
 
 use crate::details::property::function::property_function;
+use crate::property::PropertyDefinitions;
 use crate::value::{Color, ColorOperation, Value};
 
 fn check_value(input: &str, expected: Vec<Value>) {
@@ -12,7 +13,7 @@ fn check_value(input: &str, expected: Vec<Value>) {
     let function = property_function(function_name).unwrap();
 
     let result = parser.parse_nested_block(|parser| {
-        let output = function(parser);
+        let output = function(parser, &PropertyDefinitions::default());
         if let Ok(output_ok) = output {
             Ok(output_ok)
         } else {

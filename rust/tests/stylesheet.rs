@@ -1,24 +1,21 @@
 // SPDX-License-Identifier: LGPL-2.1-only OR LGPL-3.0-only OR LicenseRef-KDE-Accepted-LGPL
 // SPDX-FileCopyrightText: 2025 Arjen Hiemstra <ahiemstra@heimr.nl>
 
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 
 use cxx_rust_cssparser_impl::parseerror::{ParseError, ParseErrorKind, SourceLocation};
-use cxx_rust_cssparser_impl::stylesheet;
 use cxx_rust_cssparser_impl::{
-    property::{add_property_definition, property_definition, Property, PropertyDefinition},
+    property::{Property, PropertyDefinition},
     selector::*,
     stylerule::StyleRule,
     stylesheet::StyleSheet,
     value::{Color, Dimension, Value, Unit},
 };
 
-fn setup() {
-    let property_definition = property_definition("test");
-    if property_definition.is_none() {
-        let property_definition = Arc::new(PropertyDefinition::from_name_syntax("test", "<color>", "Test Input", 0, 0).unwrap());
-        add_property_definition(&property_definition);
-    }
+fn setup(stylesheet: &StyleSheet) {
+    let definition =
+        PropertyDefinition::from_name_syntax("test", "<color>", "Test Input", 0, 0).unwrap();
+    stylesheet.definitions.add(definition);
 }
 
 #[test]
@@ -40,10 +37,9 @@ fn minimal() {
 
 #[test]
 fn property_registration() {
-    setup();
-
     let mut stylesheet = StyleSheet::new(PathBuf::new());
-    let property_definition = property_definition("test").unwrap();
+    setup(&stylesheet);
+    let property_definition = stylesheet.definitions.get("test").unwrap();
 
     let result = stylesheet.parse_string("example { test: red; }");
     assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap().to_string());
@@ -71,9 +67,8 @@ fn property_registration() {
 
 #[test]
 fn custom_properties() {
-    setup();
-
     let mut stylesheet = StyleSheet::new(PathBuf::new());
+    setup(&stylesheet);
 
     let result = stylesheet.parse_string(
         ":root {
@@ -86,10 +81,10 @@ fn custom_properties() {
         }");
     assert!(result.is_ok(), "Parsing stylesheet failed with error: {}", result.err().unwrap().to_string());
 
-    let color_definition = property_definition("--test-color").unwrap();
+    let color_definition = stylesheet.definitions.get("--test-color").unwrap();
     assert_eq!(*color_definition, PropertyDefinition::from_name_syntax_initial("--test-color", "*", &[Value::from(Color::rgba(255, 0, 0, 255))], "Test Input", 0, 0).unwrap());
 
-    let length_definition = property_definition("--test-length").unwrap();
+    let length_definition = stylesheet.definitions.get("--test-length").unwrap();
     assert_eq!(*length_definition, PropertyDefinition::from_name_syntax_initial("--test-length", "*", &[Value::from(Dimension{value: 24.0, unit: Unit::Px})], "Test Input", 0, 0).unwrap());
 
     assert_eq!(
@@ -108,7 +103,7 @@ fn custom_properties() {
                 properties: vec![
                     Property {
                         name: String::from("test"),
-                        definition: property_definition("test").unwrap().clone(),
+                        definition: stylesheet.definitions.get("test").unwrap().clone(),
                         values: vec![
                             Value::from(Color::rgba(255, 0, 0, 255))
                         ]
@@ -121,10 +116,9 @@ fn custom_properties() {
 
 #[test]
 fn nested_block() {
-    setup();
-
     let mut stylesheet = StyleSheet::new(PathBuf::new());
-    let property_definition = property_definition("test").unwrap();
+    setup(&stylesheet);
+    let property_definition = stylesheet.definitions.get("test").unwrap();
 
     let result = stylesheet.parse_string(
         "example {
@@ -174,6 +168,7 @@ fn nested_block() {
     assert_eq!(rules, &expected);
 
     stylesheet = StyleSheet::new(PathBuf::new());
+    setup(&stylesheet);
     let result = stylesheet.parse_string(
     "example {
         test: red;
@@ -262,22 +257,22 @@ fn complex() {
     let expected_properties = vec![
         Property {
             name: String::from("width"),
-            definition: property_definition("width").unwrap(),
+            definition: stylesheet.definitions.get("width").unwrap(),
             values: vec![Value::from(Dimension{value: 32.0, unit: Unit::Px})],
         },
         Property {
             name: String::from("height"),
-            definition: property_definition("height").unwrap(),
+            definition: stylesheet.definitions.get("height").unwrap(),
             values: vec![Value::from(Dimension{value: 32.0, unit: Unit::Px})],
         },
         Property {
             name: String::from("color"),
-            definition: property_definition("color").unwrap(),
+            definition: stylesheet.definitions.get("color").unwrap(),
             values: vec![Value::from(Color::rgba(255, 0, 0, 255))]
         },
         Property {
             name: String::from("padding"),
-            definition: property_definition("padding").unwrap(),
+            definition: stylesheet.definitions.get("padding").unwrap(),
             values: vec![
                 Value::from(Dimension{value: 4.0, unit: Unit::Px}),
                 Value::from(Dimension{value: 4.0, unit: Unit::Px}),
@@ -287,14 +282,14 @@ fn complex() {
         },
         Property {
             name: String::from("padding-top"),
-            definition: property_definition("padding-top").unwrap(),
+            definition: stylesheet.definitions.get("padding-top").unwrap(),
             values: vec![
                 Value::from(Dimension{value: 2.0, unit: Unit::Rem}),
             ]
         },
         Property {
             name: String::from("background-image"),
-            definition: property_definition("background-image").unwrap(),
+            definition: stylesheet.definitions.get("background-image").unwrap(),
             values: vec![
                 Value::new_url(path.parent().unwrap().join("background.svg").to_string_lossy().as_ref()),
             ]
@@ -319,8 +314,6 @@ fn import() {
 
 #[test]
 fn errors() {
-    setup();
-
     let mut stylesheet = StyleSheet::new(PathBuf::new());
     let result = stylesheet.parse_string("this is not css");
     assert!(result.is_ok());
@@ -352,6 +345,7 @@ fn errors() {
     ]);
 
     stylesheet = StyleSheet::new(PathBuf::new());
+    setup(&stylesheet);
     let result = stylesheet.parse_string("example { test: url(somevalue); }");
     assert!(result.is_ok());
     assert_eq!(stylesheet.errors, vec![

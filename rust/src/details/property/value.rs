@@ -4,6 +4,7 @@
 use super::syntax::*;
 use super::function::*;
 
+use crate::property::PropertyDefinitions;
 use crate::details::unwrap_parse_error;
 use crate::details::SourceLocation;
 use crate::details::{parse_error, ParseError, ParseErrorKind};
@@ -100,12 +101,15 @@ fn parse_url<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> ParseValueCompon
     return Ok(Value::new_url(url.as_ref()));
 }
 
-fn parse_function<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> Result<Vec<Value>, cssparser::ParseError<'i, ParseError>> {
+fn parse_function<'i, 't>(
+    parser: &mut cssparser::Parser<'i, 't>,
+    definitions: &PropertyDefinitions,
+) -> Result<Vec<Value>, cssparser::ParseError<'i, ParseError>> {
     let function_name = parser.expect_function()?.to_string();
 
     if let Some(func) = property_function(function_name.as_ref()) {
         parser.parse_nested_block(|parser| {
-            let output = func(parser);
+            let output = func(parser, definitions);
             if let Ok(output_ok) = output {
                 Ok(output_ok)
             } else {
@@ -117,8 +121,13 @@ fn parse_function<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> Result<Vec<
     }
 }
 
-fn parse_value_component<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> Result<Vec<Value>, cssparser::ParseError<'i, ParseError>> {
-    const PARSE_FUNCTIONS: [for<'i, 't> fn(&mut cssparser::Parser<'i, 't>) -> ParseValueComponentResult<'i>; 6] = [
+fn parse_value_component<'i, 't>(
+    parser: &mut cssparser::Parser<'i, 't>,
+    definitions: &PropertyDefinitions,
+) -> Result<Vec<Value>, cssparser::ParseError<'i, ParseError>> {
+    const PARSE_FUNCTIONS: [for<'i, 't> fn(
+        &mut cssparser::Parser<'i, 't>,
+    ) -> ParseValueComponentResult<'i>; 6] = [
         parse_integer,
         parse_number,
         parse_color,
@@ -133,7 +142,7 @@ fn parse_value_component<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> Resu
         }
     }
 
-    let function_result = parse_function(parser);
+    let function_result = parse_function(parser, definitions);
     if let Ok(values) = function_result {
         return Ok(values)
     } else if let Some(_) = unwrap_parse_error(&function_result) {
@@ -143,13 +152,17 @@ fn parse_value_component<'i, 't>(parser: &mut cssparser::Parser<'i, 't>) -> Resu
     parse_error(parser, ParseErrorKind::InvalidPropertyValue, String::from("Could not parse input"))
 }
 
-pub fn parse_values<'i, 't>(syntax: &ParsedPropertySyntax, parser: &mut cssparser::Parser<'i, 't>) -> Result<Vec<Value>, cssparser::ParseError<'i, ParseError>> {
+pub fn parse_values<'i, 't>(
+    syntax: &ParsedPropertySyntax,
+    parser: &mut cssparser::Parser<'i, 't>,
+    definitions: &PropertyDefinitions,
+) -> Result<Vec<Value>, cssparser::ParseError<'i, ParseError>> {
     let result = parser.parse_until_before(cssparser::Delimiter::Bang, |parser| {
         let mut values: Vec<Value> = Vec::new();
         let mut comma_separated = false;
 
         while !parser.is_exhausted() {
-            let result = parse_value_component(parser);
+            let result = parse_value_component(parser, definitions);
             if let Ok(parsed_values) = result {
                 values.extend(parsed_values);
             } else {

@@ -3,11 +3,10 @@
 
 // Implements the parts of cssparser that are required to parse things.
 
-use std::sync::Arc;
 
 use cssparser::{CowRcStr, RuleBodyParser};
 
-use crate::property::{add_property_definition, property_definition, Property, PropertyDefinition};
+use crate::property::{Property, PropertyDefinition, PropertyDefinitions};
 use crate::selector::Selector;
 
 use super::{parse_error, ParseError, ParseErrorKind};
@@ -37,11 +36,13 @@ pub enum AtRulePrelude {
     Import(String),
 }
 
-pub struct RulesParser<const TOP_LEVEL: bool>;
-pub type TopLevelParser = RulesParser<true>;
-pub type NestedParser = RulesParser<false>;
+pub struct RulesParser<'a, const TOP_LEVEL: bool> {
+    pub definitions: &'a PropertyDefinitions,
+}
+pub type TopLevelParser<'a> = RulesParser<'a, true>;
+pub type NestedParser<'a> = RulesParser<'a, false>;
 
-impl<'i, const TOP_LEVEL: bool> cssparser::QualifiedRuleParser<'i> for RulesParser<TOP_LEVEL> {
+impl<'i, const TOP_LEVEL: bool> cssparser::QualifiedRuleParser<'i> for RulesParser<'_, TOP_LEVEL> {
     type Prelude = Vec<Selector>;
     type QualifiedRule = ParseResult;
     type Error = ParseError;
@@ -66,10 +67,16 @@ impl<'i, const TOP_LEVEL: bool> cssparser::QualifiedRuleParser<'i> for RulesPars
         &mut self,
         prelude: Self::Prelude,
         _location: &cssparser::ParserState,
-        parser: &mut cssparser::Parser<'i, 't>) -> Result<Self::QualifiedRule, cssparser::ParseError<'i, Self::Error>>
-    {
-        let mut nested_parser = NestedParser{};
-        let mut body_parser = RuleBodyParser::<NestedParser, Self::QualifiedRule, Self::Error>::new(parser, &mut nested_parser);
+        parser: &mut cssparser::Parser<'i, 't>,
+    ) -> Result<Self::QualifiedRule, cssparser::ParseError<'i, Self::Error>> {
+        let mut nested_parser = NestedParser {
+            definitions: self.definitions,
+        };
+        let mut body_parser =
+            RuleBodyParser::<NestedParser<'_>, Self::QualifiedRule, Self::Error>::new(
+                parser,
+                &mut nested_parser,
+            );
 
         let mut properties = Vec::new();
         let mut nested = Vec::new();
@@ -79,7 +86,7 @@ impl<'i, const TOP_LEVEL: bool> cssparser::QualifiedRuleParser<'i> for RulesPars
                     ParseResult::Property(property) => properties.push(property),
                     ParseResult::Rule(rule) => nested.push(rule),
                     ParseResult::PropertyDefinition(definition) => {
-                        add_property_definition(&Arc::new(definition));
+                        self.definitions.add(definition);
                     },
                     ParseResult::Import(_) => return parse_error(parser, ParseErrorKind::UnsupportedAtRule, String::from("@import can only be used at top level")),
                 }
@@ -96,7 +103,7 @@ impl<'i, const TOP_LEVEL: bool> cssparser::QualifiedRuleParser<'i> for RulesPars
     }
 }
 
-impl<'i, const TOP_LEVEL: bool> cssparser::AtRuleParser<'i> for RulesParser<TOP_LEVEL> {
+impl<'i, const TOP_LEVEL: bool> cssparser::AtRuleParser<'i> for RulesParser<'_, TOP_LEVEL> {
     type Prelude = AtRulePrelude;
     type AtRule = ParseResult;
     type Error = ParseError;
@@ -127,7 +134,7 @@ impl<'i, const TOP_LEVEL: bool> cssparser::AtRuleParser<'i> for RulesParser<TOP_
     ) -> Result<Self::AtRule, cssparser::ParseError<'i, Self::Error>> {
         match prelude {
             AtRulePrelude::Property(name) => {
-                let result = parse_property_definition(input, name.to_string());
+                let result = parse_property_definition(input, name.to_string(), self.definitions);
                 match result {
                     Ok(definition) => return Ok(ParseResult::PropertyDefinition(definition)),
                     Err(error) => return parse_error(input, ParseErrorKind::InvalidPropertyDefinition, error.to_string())
@@ -155,18 +162,19 @@ impl<'i, const TOP_LEVEL: bool> cssparser::AtRuleParser<'i> for RulesParser<TOP_
     }
 }
 
-impl<'i, const TOP_LEVEL: bool> cssparser::DeclarationParser<'i> for RulesParser<TOP_LEVEL> {
+impl<'i, const TOP_LEVEL: bool> cssparser::DeclarationParser<'i> for RulesParser<'_, TOP_LEVEL> {
     type Declaration = ParseResult;
     type Error = ParseError;
 
     fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut cssparser::Parser<'i, 't>, _state: &cssparser::ParserState) -> Result<Self::Declaration, cssparser::ParseError<'i, Self::Error>> {
-        let definition = property_definition(name.to_string().as_str());
+        let definition = self.definitions.get(name.as_ref());
         if definition.is_none() {
             if !name.starts_with("--") {
                 return parse_error(input, ParseErrorKind::UnknownProperty, format!("No definition for property {}", name));
             }
 
-            let values_result = parse_values(&ParsedPropertySyntax::Universal, input);
+            let values_result =
+                parse_values(&ParsedPropertySyntax::Universal, input, self.definitions);
             match values_result {
                 Ok(values) => {
                     return Ok(ParseResult::PropertyDefinition(PropertyDefinition {
@@ -183,7 +191,7 @@ impl<'i, const TOP_LEVEL: bool> cssparser::DeclarationParser<'i> for RulesParser
         }
 
         let pd = definition.unwrap();
-        let values_result = parse_values(&pd.syntax, input);
+        let values_result = parse_values(&pd.syntax, input, self.definitions);
         match values_result {
             Ok(values) => {
                 Ok(ParseResult::Property(Property {
@@ -204,7 +212,7 @@ impl<'i, const TOP_LEVEL: bool> cssparser::DeclarationParser<'i> for RulesParser
 }
 
 impl<'i, const TOP_LEVEL: bool> cssparser::RuleBodyItemParser<'i, ParseResult, ParseError>
-    for RulesParser<TOP_LEVEL>
+    for RulesParser<'_, TOP_LEVEL>
 {
     fn parse_declarations(&self) -> bool {
         true
